@@ -45,13 +45,15 @@ Open [http://localhost:3000](http://localhost:3000).
 - `lib/supabase/` — Supabase browser + server client setup
 - `lib/ingestion/` — Tier-1 / Tier-2 document ingestion pipeline (not yet implemented)
 - `lib/rag/` — embedding + pgvector query + Claude synthesis flow (not yet implemented)
-- `supabase/migrations/` — schema migrations (not yet implemented)
+- `supabase/migrations/` — schema migrations: `doctors`, `documents`, `queries`, `citations` +
+  pgvector + RLS (written, not yet applied to a live database)
 
 ## Status
 
-**Current phase: Phase 0 — Setup.** Repo scaffolding only (Next.js + TypeScript, PWA manifest,
-Supabase client stubs, env var template). No live Supabase connection, no schema, no ingestion or
-RAG logic yet.
+**Current phase: Phase 1 — Architecture & Foundation.** Core schema authored (pgvector-backed
+`documents.embedding` at 1024 dims for `voyage-3-large`, RLS enabled/forced on all tables, no
+doctor-facing login in the MVP). Not yet applied to a live Supabase project — no real credentials
+configured yet. Ingestion pipeline and RAG query flow still not implemented.
 
 Update this section as the project progresses so each build session picks up where the last left
 off.

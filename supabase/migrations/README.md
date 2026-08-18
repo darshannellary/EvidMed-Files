@@ -1,10 +1,11 @@
-# Supabase Migrations (not yet implemented)
+# Supabase Migrations
 
-Will hold SQL migrations for the core schema (spec §6):
+- `20260818090000_core_schema.sql` — `doctors`, `documents`, `queries`, `citations` tables,
+  pgvector extension, constraints, and indexes (spec §6).
+- `20260818090100_enable_rls.sql` — row-level security enabled + forced on all four tables.
+  No policies yet: all application access goes through the service-role key server-side, since
+  there's no doctor-facing login in the MVP (spec §7 Stage 1 is a founder-run manual review queue).
 
-- `doctors` — id, name, NMC/state council reg number, verification_status, verification_method, created_at
-- `documents` — id, source, tier (1 or 2), title, raw_text, embedding, ingested_at
-- `queries` — id, doctor_id, query_text, response_text, citations[], response_time_ms, created_at
-- `citations` — id, query_id, document_id, claim_text
-
-Row-level security must be enabled on all tables before any pilot use (spec §9).
+Not yet applied to a live database — no Supabase project is connected this session. Once real
+credentials are in `.env.local`, apply with the Supabase CLI (`supabase db push`) or paste into the
+project's SQL editor.
