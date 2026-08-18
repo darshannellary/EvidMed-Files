@@ -1,0 +1,10 @@
+{
+  "name": "EvidMed AI",
+  "short_name": "EvidMed",
+  "description": "Cited, evidence-based clinical answers for verified Indian doctors.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": []
+}
