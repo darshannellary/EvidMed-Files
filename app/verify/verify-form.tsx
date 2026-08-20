@@ -98,7 +98,7 @@ export function VerifyForm() {
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="certificate">
-          Registration certificate <span className={styles.hint}>(PDF, JPEG, or PNG, up to 10MB)</span>
+          Registration certificate <span className={styles.hint}>(PDF, JPEG, or PNG, up to 4MB)</span>
         </label>
         <input
           id="certificate"
