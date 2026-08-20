@@ -5,11 +5,13 @@ const TIER1_MATCH_COUNT = 5;
 const TIER2_MATCH_COUNT = 5;
 // Total sent to Claude — keeps the prompt small for the <10s response target.
 const MAX_CONTEXT_DOCS = 8;
-// Cosine distance threshold. TEMPORARILY widened to 2.0 (the maximum possible cosine distance)
-// to measure the real query-vs-document distance via the [query] retrieved ... diagnostic log in
-// pipeline.ts — 0.4 was an unverified guess that turned out to reject every real result. Tighten
-// back down once we have a real number to calibrate against.
-const MAX_DISTANCE = 2.0;
+// Cosine distance threshold. Calibrated from one real data point: a genuinely relevant
+// query-vs-document match (the question was literally "what does this document say") measured
+// 0.5451. 0.75 gives that real match comfortable margin while still excluding the "opposite
+// direction" end of the distance range (max possible is 2.0). This is still a rough calibration
+// from a single true-positive, with no observed true-negative yet (the corpus has one document) —
+// revisit once more documents and more varied real queries exist.
+const MAX_DISTANCE = 0.75;
 // With exactly one document in the whole corpus today, a higher threshold could never be
 // satisfied. Raise as the corpus grows.
 const MIN_TIER1_RESULTS = 1;
