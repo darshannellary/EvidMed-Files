@@ -1,12 +1,38 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-background: #ffffff;
+  --card-border: #e5e5e5;
+  --input-border: #d4d4d4;
+  --input-focus-border: #171717;
+  --muted-foreground: #6b7280;
+  --accent: #171717;
+  --accent-foreground: #ffffff;
+  --error-background: #fef2f2;
+  --error-border: #fecaca;
+  --error-foreground: #b91c1c;
+  --success-background: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-foreground: #15803d;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --card-background: #141414;
+    --card-border: #2a2a2a;
+    --input-border: #3a3a3a;
+    --input-focus-border: #ededed;
+    --muted-foreground: #a3a3a3;
+    --accent: #ededed;
+    --accent-foreground: #0a0a0a;
+    --error-background: #2a1215;
+    --error-border: #5c1a1f;
+    --error-foreground: #f87171;
+    --success-background: #0f2417;
+    --success-border: #16532c;
+    --success-foreground: #4ade80;
   }
 }
 
@@ -26,7 +52,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

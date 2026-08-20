@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { submitDoctorAction, type SubmitDoctorActionState } from "./actions";
+import styles from "./verify.module.css";
 
 const INITIAL_STATE: SubmitDoctorActionState = { status: "idle" };
 
@@ -20,53 +21,102 @@ export function VerifyForm() {
   const [state, formAction, isPending] = useActionState(submitDoctorAction, INITIAL_STATE);
 
   if (state.status === "success") {
-    return <p role="status">{state.message}</p>;
+    return (
+      <div className={styles.successCard}>
+        <div className={styles.successIcon} aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M20 6L9 17l-5-5"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <p role="status" className={styles.successMessage}>
+          {state.message}
+        </p>
+      </div>
+    );
   }
 
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <label>
-        Full name
-        <input name="name" required minLength={2} maxLength={200} />
-      </label>
+    <form action={formAction} className={styles.form}>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="name">
+          Full name
+        </label>
+        <input id="name" name="name" className={styles.input} required minLength={2} maxLength={200} />
+      </div>
 
-      <label>
-        Registration council (e.g. NMC or your state medical council)
-        <input name="registrationCouncil" required list="councils" />
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="registrationCouncil">
+          Registration council <span className={styles.hint}>(NMC or your state council)</span>
+        </label>
+        <input
+          id="registrationCouncil"
+          name="registrationCouncil"
+          className={styles.input}
+          required
+          list="councils"
+        />
         <datalist id="councils">
           {KNOWN_COUNCILS.map((c) => (
             <option key={c} value={c} />
           ))}
         </datalist>
-      </label>
+      </div>
 
-      <label>
-        Registration number
-        <input name="registrationNumber" required minLength={2} maxLength={100} />
-      </label>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="registrationNumber">
+          Registration number
+        </label>
+        <input
+          id="registrationNumber"
+          name="registrationNumber"
+          className={styles.input}
+          required
+          minLength={2}
+          maxLength={100}
+        />
+      </div>
 
-      <label>
-        Contact phone (optional — used only to follow up on your application)
-        <input name="contactPhone" type="tel" />
-      </label>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="contactPhone">
+          Contact phone <span className={styles.hint}>(optional)</span>
+        </label>
+        <input id="contactPhone" name="contactPhone" type="tel" className={styles.input} />
+      </div>
 
-      <label>
-        Contact email (optional — used only to follow up on your application)
-        <input name="contactEmail" type="email" />
-      </label>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="contactEmail">
+          Contact email <span className={styles.hint}>(optional)</span>
+        </label>
+        <input id="contactEmail" name="contactEmail" type="email" className={styles.input} />
+      </div>
 
-      <label>
-        Registration certificate (PDF, JPEG, or PNG, up to 10MB)
-        <input name="certificate" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
-      </label>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="certificate">
+          Registration certificate <span className={styles.hint}>(PDF, JPEG, or PNG, up to 10MB)</span>
+        </label>
+        <input
+          id="certificate"
+          name="certificate"
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          required
+          className={styles.input}
+        />
+      </div>
 
       {state.status === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
+        <p role="alert" className={styles.errorBox}>
           {state.message}
         </p>
       )}
 
-      <button type="submit" disabled={isPending}>
+      <button type="submit" disabled={isPending} className={styles.submitButton}>
         {isPending ? "Submitting..." : "Submit for verification"}
       </button>
     </form>
