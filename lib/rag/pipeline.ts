@@ -30,7 +30,22 @@ export async function answerQuery(args: AnswerQueryArgs): Promise<AnswerQueryRes
   // documented two-phase purpose.
   const queryEmbedding = await embedText(args.queryText, "query");
   const docs = await retrieveDocuments(admin, queryEmbedding);
-  const { responseText, citations } = await synthesizeAnswer(args.queryText, docs);
+  console.error(
+    `[query] retrieved ${docs.length} document(s): ${docs.map((d) => `${d.title} (tier ${d.tier}, distance ${d.distance.toFixed(4)})`).join(", ") || "none"}`,
+  );
+
+  let responseText: string;
+  let citations: { documentId: string; claimText: string }[];
+
+  if (docs.length === 0) {
+    // Skip Claude entirely — nothing to cite, and calling the model here would only produce an
+    // ambiguous zero-citation response indistinguishable from a real uncited claim.
+    responseText =
+      "No Tier 1 or Tier 2 sources were found with sufficient similarity to this query.";
+    citations = [];
+  } else {
+    ({ responseText, citations } = await synthesizeAnswer(args.queryText, docs));
+  }
 
   const responseTimeMs = Date.now() - startedAt;
   await completeQuery(admin, queryId, { responseText, responseTimeMs });

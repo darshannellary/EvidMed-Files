@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { RetrievedDocument, SynthesisResult } from "./types";
-import { validateCitations } from "./validate";
+import { validateCitations, NO_ANSWER_SENTINEL } from "./validate";
 
 const CLAUDE_MODEL = "claude-sonnet-5";
 // Per-doc excerpt budget for the prompt — a latency/context budget distinct from the ingestion
@@ -16,7 +16,8 @@ Rules, no exceptions:
 1. Descriptive, not directive. Phrase findings as "guidelines indicate...", "evidence suggests...", "the cited source recommends...". Never as an instruction to the doctor: do NOT write "administer X", "you should prescribe Y", "the patient must receive Z".
 2. Every factual or clinical claim must end with one or more citation markers like [1] or [2][3], referencing the numbered sources below. No exceptions — an uncited claim is not allowed.
 3. Only cite sources that are actually provided below. Never invent a citation number outside the provided list.
-4. If the provided sources don't address the question, say so explicitly rather than answering from general knowledge.
+4. If the provided sources don't address the question — including if no sources are listed at all — respond with EXACTLY this text and nothing else: ${NO_ANSWER_SENTINEL}
+   Do not explain, apologize, or add anything else around it. Do not use this if you can answer using the sources.
 5. Plain prose only. Put citation markers inline, mid-sentence or at sentence end. Do not add a separate "References" section.`;
 
 export function buildUserPrompt(query: string, docs: RetrievedDocument[]): string {
