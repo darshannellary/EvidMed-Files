@@ -9,7 +9,11 @@
     "lint": "eslint",
     "ingest": "tsx --env-file=.env.local lib/ingestion/cli.ts",
     "ingest:backfill-embeddings": "tsx --env-file=.env.local lib/ingestion/backfill-cli.ts",
-    "query": "tsx --env-file=.env.local lib/rag/cli.ts"
+    "query": "tsx --env-file=.env.local lib/rag/cli.ts",
+    "doctors:list": "tsx --env-file=.env.local lib/doctors/cli.ts list",
+    "doctors:approve": "tsx --env-file=.env.local lib/doctors/cli.ts approve",
+    "doctors:reject": "tsx --env-file=.env.local lib/doctors/cli.ts reject",
+    "doctors:cert-url": "tsx --env-file=.env.local lib/doctors/cli.ts cert-url"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
