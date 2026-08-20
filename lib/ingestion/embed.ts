@@ -11,8 +11,15 @@ interface VoyageEmbeddingsResponse {
 /**
  * Impure: makes a real network call. This is the one step that can't be exercised without a real
  * VOYAGE_API_KEY — the response shape assumed here is unverified until then.
+ *
+ * `inputType` matches Voyage's asymmetric-retrieval convention: ingested documents use
+ * "document", queries use "query". Untested whether the two are actually comparable for this
+ * product's data until run against a real corpus.
  */
-export async function embedText(text: string): Promise<number[]> {
+export async function embedText(
+  text: string,
+  inputType: "query" | "document" = "document",
+): Promise<number[]> {
   const apiKey = process.env.VOYAGE_API_KEY;
   if (!apiKey) {
     throw new VoyageEmbeddingError("VOYAGE_API_KEY is not set");
@@ -27,7 +34,7 @@ export async function embedText(text: string): Promise<number[]> {
     body: JSON.stringify({
       input: [text],
       model: VOYAGE_MODEL,
-      input_type: "document",
+      input_type: inputType,
       output_dimension: VOYAGE_DIMENSIONS,
     }),
   });
