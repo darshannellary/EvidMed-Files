@@ -22,7 +22,7 @@ export default function Home() {
               <path d="M6.5 13h2.6l1.2-2.4 1.6 4.8 1.2-2.4h2.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div className={styles.brandText}>
-              <span className={styles.brandName}>EvidMed</span>
+              <span className={styles.brandName}>EvidMed AI</span>
               <span className={styles.brandTagline}>CLINICAL EVIDENCE, VERIFIED</span>
             </div>
           </div>
