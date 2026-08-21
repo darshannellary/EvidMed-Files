@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { submitDoctorAction, type SubmitDoctorActionState } from "./actions";
+import { verifyFormAction, type VerifyFormState } from "./actions";
 import styles from "./verify.module.css";
 
-const INITIAL_STATE: SubmitDoctorActionState = { status: "idle" };
+const INITIAL_STATE: VerifyFormState = { phase: "details" };
 
 const KNOWN_COUNCILS = [
   "National Medical Commission (NMC)",
@@ -18,31 +18,15 @@ const KNOWN_COUNCILS = [
 ];
 
 export function VerifyForm() {
-  const [state, formAction, isPending] = useActionState(submitDoctorAction, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(verifyFormAction, INITIAL_STATE);
 
-  if (state.status === "success") {
-    return (
-      <div className={styles.successCard}>
-        <div className={styles.successIcon} aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M20 6L9 17l-5-5"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <p role="status" className={styles.successMessage}>
-          {state.message}
-        </p>
-      </div>
-    );
-  }
+  const emailVerified = state.phase !== "details";
+  const otpVerified = state.phase === "otp_verified";
 
   return (
     <form action={formAction} className={styles.form}>
+      <input type="hidden" name="otpVerificationId" value={state.otpVerificationId ?? ""} />
+
       <div className={styles.field}>
         <label className={styles.label} htmlFor="name">
           Full name
@@ -84,41 +68,114 @@ export function VerifyForm() {
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="contactPhone">
-          Contact phone <span className={styles.hint}>(optional)</span>
+          Phone <span className={styles.hint}>(Indian mobile number)</span>
         </label>
-        <input id="contactPhone" name="contactPhone" type="tel" className={styles.input} />
+        <input
+          id="contactPhone"
+          name="contactPhone"
+          type="tel"
+          className={styles.input}
+          required
+          placeholder="98765 43210"
+        />
+      </div>
+
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="password">
+          Password <span className={styles.hint}>(usable once your certificate is verified)</span>
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          className={styles.input}
+          required
+          minLength={8}
+        />
       </div>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="contactEmail">
-          Contact email <span className={styles.hint}>(optional)</span>
+          Email/Username
         </label>
-        <input id="contactEmail" name="contactEmail" type="email" className={styles.input} />
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input
+            id="contactEmail"
+            name="contactEmail"
+            type="email"
+            className={styles.input}
+            required
+            readOnly={emailVerified}
+            defaultValue={state.email ?? ""}
+          />
+          {!emailVerified && (
+            <button
+              type="submit"
+              name="intent"
+              value="send-otp"
+              disabled={isPending}
+              className={styles.submitButton}
+              style={{ marginTop: 0, whiteSpace: "nowrap" }}
+            >
+              {isPending ? "Sending..." : "Send code"}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="certificate">
-          Registration certificate <span className={styles.hint}>(PDF, JPEG, or PNG, up to 4MB)</span>
-        </label>
-        <input
-          id="certificate"
-          name="certificate"
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
-          required
-          className={styles.input}
-        />
-      </div>
+      {emailVerified && !otpVerified && (
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="otpCode">
+            Verification code <span className={styles.hint}>(sent to {state.email})</span>
+          </label>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <input
+              id="otpCode"
+              name="otpCode"
+              className={styles.input}
+              required
+              minLength={6}
+              maxLength={6}
+              inputMode="numeric"
+              pattern="\d{6}"
+            />
+            <button
+              type="submit"
+              name="intent"
+              value="verify-otp"
+              disabled={isPending}
+              className={styles.submitButton}
+              style={{ marginTop: 0, whiteSpace: "nowrap" }}
+            >
+              {isPending ? "Verifying..." : "Verify code"}
+            </button>
+          </div>
+        </div>
+      )}
 
-      {state.status === "error" && (
-        <p role="alert" className={styles.errorBox}>
-          {state.message}
+      {otpVerified && (
+        <p role="status" className={styles.successMessage} style={{ margin: 0 }}>
+          Email verified.
         </p>
       )}
 
-      <button type="submit" disabled={isPending} className={styles.submitButton}>
-        {isPending ? "Submitting..." : "Submit for verification"}
-      </button>
+      {state.error && (
+        <p role="alert" className={styles.errorBox}>
+          {state.error}
+        </p>
+      )}
+
+      {otpVerified && (
+        <button
+          type="submit"
+          name="intent"
+          value="submit"
+          disabled={isPending}
+          className={styles.submitButton}
+        >
+          {isPending ? "Creating account..." : "Create account & continue"}
+        </button>
+      )}
     </form>
   );
 }

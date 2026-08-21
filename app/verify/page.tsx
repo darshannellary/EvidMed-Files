@@ -13,8 +13,9 @@ export default function VerifyPage() {
       <div className={styles.card}>
         <h1 className={styles.heading}>Doctor Verification</h1>
         <p className={styles.description}>
-          Submit your registration details and a photo or PDF of your registration certificate.
-          A member of our team manually reviews submissions, typically within a few hours.
+          Step 1 of 2: enter your details and verify your email. You&rsquo;ll upload your
+          registration certificate on the next page. A member of our team manually reviews
+          submissions, typically within a few hours.
         </p>
         <VerifyForm />
       </div>

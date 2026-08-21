@@ -41,19 +41,51 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Project Structure
 
-- `app/` — routes (landing page now; query UI comes later)
-- `lib/supabase/` — Supabase browser + server client setup
-- `lib/ingestion/` — Tier-1 / Tier-2 document ingestion pipeline (not yet implemented)
-- `lib/rag/` — embedding + pgvector query + Claude synthesis flow (not yet implemented)
-- `supabase/migrations/` — schema migrations: `doctors`, `documents`, `queries`, `citations` +
-  pgvector + RLS (written, not yet applied to a live database)
+- `app/` — routes: `/` (landing page), `/verify` (registration details + email OTP + password,
+  page 1 of signup), `/verify/certificate` (certificate upload, page 2, authenticated), `/login`,
+  `/ask` (the query flow, authenticated + verified doctors only)
+- `proxy.ts` + `lib/supabase/middleware.ts` — session refresh, required by `@supabase/ssr` on every
+  request (Next 16 renamed the `middleware.ts` file convention to `proxy.ts`)
+- `lib/auth/session.ts` — `getAuthedDoctor()`, the shared session/status-gating helper used by
+  `/ask` and `/verify/certificate`
+- `lib/supabase/` — browser/server (anon-key, RLS-scoped) clients + `admin.ts` (service-role
+  client — bypasses RLS, used for the founder-run CLIs and the parts of the app that need to)
+- `lib/ingestion/` — Tier-1 / Tier-2 PDF ingestion pipeline (extract → embed via Voyage → insert),
+  CLI: `npm run ingest`
+- `lib/rag/` — query embedding → pgvector similarity search (Tier 1 before Tier 2) → Claude
+  synthesis with enforced citations, used by both `/ask` and the CLI: `npm run query`
+- `lib/doctors/` — signup (`/verify` + `/verify/certificate`), phone/OTP validation, and the
+  founder review CLI: `npm run doctors:list` / `doctors:approve` / `doctors:reject` /
+  `doctors:cert-url`
+- `lib/email/` — OTP email sending via Resend
+- `supabase/migrations/` — schema, RLS (including the `authenticated`-role policies added for
+  doctor login), `match_documents` RPC, doctor-certificates + OTP tables and storage bucket
 
 ## Status
 
-**Current phase: Phase 1 — Architecture & Foundation.** Core schema authored (pgvector-backed
-`documents.embedding` at 1024 dims for `voyage-3-large`, RLS enabled/forced on all tables, no
-doctor-facing login in the MVP). Not yet applied to a live Supabase project — no real credentials
-configured yet. Ingestion pipeline and RAG query flow still not implemented.
+**Current phase: Phase 2 — Core Product, complete pending one live end-to-end pass.** Everything
+below is built; the pieces marked (live-verified) have been run for real against the founder's
+Supabase/Voyage/Anthropic/Vercel accounts, the rest is built + tested-with-mocks/scratch-Postgres
+in this session but not yet exercised with real credentials:
+
+- Schema live, RLS enforced (deny-all except the service-role admin client and, now, narrowly
+  scoped `authenticated`-role read/insert policies for doctor login) — (live-verified)
+- Document ingestion: real PDF ingested with a real 1024-dim embedding — (live-verified)
+- RAG query flow: real query → real Tier-1 retrieval → real Claude Sonnet 5 synthesis → correctly
+  cited answer, citation enforcement verified in code (not just prompted for) — (live-verified)
+- Doctor verification queue (founder CLI review side): real form submission with a real
+  certificate upload, reviewed and approved via the CLI — (live-verified)
+- Deployed to Vercel, live on a public URL — (live-verified)
+- **Doctor-facing login + self-service `/ask`** (this session's work): a doctor now creates a real
+  password-protected account, verified via a mandatory email OTP + Indian-phone validation, across
+  a two-page flow (`/verify` for details+OTP+account creation, `/verify/certificate` for the
+  upload) — then logs in at `/login` and asks questions themselves at `/ask` once approved,
+  instead of everything running through the founder's CLI. RLS policies, migrations, and all
+  application logic verified via scratch-Postgres + mocked Supabase clients this session; not yet
+  run against the real Supabase project, real Resend account, or a real browser session.
+
+Not yet built: voice input (spec §10 Phase 2's remaining item) and a PWA offline-caching layer
+beyond the manifest.
 
 Update this section as the project progresses so each build session picks up where the last left
 off.
@@ -70,7 +102,8 @@ off.
 
 ### Security & Compliance Checklist
 
-- [ ] Row-level security enabled on all Supabase tables
+- [x] Row-level security enabled on all Supabase tables (verified: enabled + forced, zero
+  anon/authenticated policies, service-role admin client is the only write path)
 - [ ] No patient identifiers accepted or stored anywhere in the query path
 - [ ] AES-256 encryption at rest (Supabase default — verify it's on)
 - [ ] TLS 1.3 in transit (verify on hosting provider)

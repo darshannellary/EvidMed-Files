@@ -2,8 +2,9 @@ export interface DoctorSubmissionInput {
   name: string;
   registrationCouncil: string;
   registrationNumber: string;
-  contactPhone: string | null;
-  contactEmail: string | null;
+  contactPhone: string;
+  contactEmail: string;
+  password: string;
 }
 
 export interface ValidationError {
