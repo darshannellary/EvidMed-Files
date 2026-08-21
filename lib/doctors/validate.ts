@@ -1,9 +1,11 @@
 import type { DoctorSubmissionInput, SubmissionValidationResult } from "./types";
+import { normalizeIndianPhone } from "./phone";
 
 const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 200;
 const MIN_REG_NUMBER_LENGTH = 2;
 const MAX_REG_NUMBER_LENGTH = 100;
+const MIN_PASSWORD_LENGTH = 8;
 
 // registration_council/registration_number are free-text at the schema level (no check-constraint
 // enum — unlike documents.source), since NMC plus ~30 state councils isn't a fixed, enforceable
@@ -28,8 +30,16 @@ export function validateSubmission(input: DoctorSubmissionInput): SubmissionVali
     );
   }
 
-  if (input.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.contactEmail)) {
-    errors.push("Contact email is not a valid email address.");
+  if (!input.contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.contactEmail)) {
+    errors.push("A valid email address is required.");
+  }
+
+  if (!input.contactPhone || !normalizeIndianPhone(input.contactPhone)) {
+    errors.push("A valid Indian mobile number is required (10 digits, starting with 6-9).");
+  }
+
+  if (!input.password || input.password.length < MIN_PASSWORD_LENGTH) {
+    errors.push(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
   }
 
   if (errors.length > 0) {

@@ -7,6 +7,9 @@ export async function listPendingDoctors(admin: SupabaseClient): Promise<Pending
     .from("doctors")
     .select("id, name, registration_council, registration_number, contact_phone, contact_email, created_at")
     .eq("verification_status", "pending")
+    // Excludes in-progress signups that completed page 1 (account created) but haven't reached
+    // page 2 (certificate upload) yet — not ready for review, still mid-signup.
+    .not("certificate_path", "is", null)
     .order("created_at", { ascending: true });
 
   if (error) {
