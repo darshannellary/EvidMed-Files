@@ -19,10 +19,6 @@ export default async function LoginPage({
     <main className={styles.page}>
       <div className={styles.card}>
         <h1 className={styles.heading}>Log In</h1>
-        <p className={styles.description}>
-          Log in with the email/username and password you set when you registered. Not registered
-          yet? <Link href="/verify">Submit your registration</Link>.
-        </p>
         {resetSuccess && (
           <p role="status" className={styles.successMessage}>
             Password has been reset. You can log in below.
