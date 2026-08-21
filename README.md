@@ -63,10 +63,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Status
 
-**Current phase: Phase 2 — Core Product, complete pending one live end-to-end pass.** Everything
-below is built; the pieces marked (live-verified) have been run for real against the founder's
-Supabase/Voyage/Anthropic/Vercel accounts, the rest is built + tested-with-mocks/scratch-Postgres
-in this session but not yet exercised with real credentials:
+**Current phase: Phase 2 — Core Product, complete and live end-to-end.** Everything below has been
+run for real against the founder's Supabase/Voyage/Anthropic/Resend/Vercel accounts and is marked
+(live-verified):
 
 - Schema live, RLS enforced (deny-all except the service-role admin client and, now, narrowly
   scoped `authenticated`-role read/insert policies for doctor login) — (live-verified)
@@ -76,13 +75,13 @@ in this session but not yet exercised with real credentials:
 - Doctor verification queue (founder CLI review side): real form submission with a real
   certificate upload, reviewed and approved via the CLI — (live-verified)
 - Deployed to Vercel, live on a public URL — (live-verified)
-- **Doctor-facing login + self-service `/ask`** (this session's work): a doctor now creates a real
-  password-protected account, verified via a mandatory email OTP + Indian-phone validation, across
-  a two-page flow (`/verify` for details+OTP+account creation, `/verify/certificate` for the
-  upload) — then logs in at `/login` and asks questions themselves at `/ask` once approved,
-  instead of everything running through the founder's CLI. RLS policies, migrations, and all
-  application logic verified via scratch-Postgres + mocked Supabase clients this session; not yet
-  run against the real Supabase project, real Resend account, or a real browser session.
+- **Doctor-facing login + self-service `/ask`**: a doctor creates a real password-protected
+  account, verified via a mandatory email OTP + Indian-phone validation, across a two-page flow
+  (`/verify` for details+OTP+account creation, `/verify/certificate` for the upload) — then logs
+  in at `/login` and asks questions themselves at `/ask` once approved, instead of everything
+  running through the founder's CLI. Confirmed with a real signup (real OTP email via Resend, real
+  Supabase Auth account, real certificate upload), approved via `npm run doctors:approve`, logged
+  in, and asked a real ICMR-guidance question that returned a correctly cited answer — (live-verified)
 
 Not yet built: voice input (spec §10 Phase 2's remaining item) and a PWA offline-caching layer
 beyond the manifest.
