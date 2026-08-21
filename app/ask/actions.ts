@@ -1,7 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { getAuthedDoctor } from "@/lib/auth/session";
 import { answerQuery } from "@/lib/rag/pipeline";
+import { createClient } from "@/lib/supabase/server";
 
 export interface AskFormState {
   error?: string;
@@ -35,4 +37,10 @@ export async function askAction(
     console.error("[ask] query failed:", err);
     return { error: "Something went wrong answering your question. Please try again." };
   }
+}
+
+export async function logoutAction() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
 }
