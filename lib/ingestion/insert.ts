@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { IngestPayload } from "./types";
+import type { DocumentSource, DocumentTier } from "./types";
 
 // Takes the admin client as a parameter (not constructed internally) so this is mockable against
 // a fake Supabase stub without touching a real database.
 export async function insertDocument(
   admin: SupabaseClient,
-  payload: IngestPayload,
+  payload: { source: DocumentSource; tier: DocumentTier; title: string; raw_text: string },
 ): Promise<{ id: string }> {
   const { data, error } = await admin
     .from("documents")
@@ -14,7 +14,6 @@ export async function insertDocument(
       tier: payload.tier,
       title: payload.title,
       raw_text: payload.raw_text,
-      embedding: payload.embedding,
     })
     .select("id")
     .single();
@@ -26,14 +25,41 @@ export async function insertDocument(
   return { id: data.id as string };
 }
 
-export async function backfillEmbedding(
+export interface ChunkInsertPayload {
+  chunkIndex: number;
+  chunkText: string;
+  embedding: number[] | null;
+}
+
+export async function insertDocumentChunks(
   admin: SupabaseClient,
-  id: string,
-  embedding: number[],
+  documentId: string,
+  chunks: ChunkInsertPayload[],
 ): Promise<void> {
-  const { error } = await admin.from("documents").update({ embedding }).eq("id", id);
+  if (chunks.length === 0) return;
+
+  const { error } = await admin.from("document_chunks").insert(
+    chunks.map((c) => ({
+      document_id: documentId,
+      chunk_index: c.chunkIndex,
+      chunk_text: c.chunkText,
+      embedding: c.embedding,
+    })),
+  );
 
   if (error) {
-    throw new Error(`Failed to backfill embedding for document ${id}: ${error.message}`);
+    throw new Error(`Failed to insert chunks for document ${documentId}: ${error.message}`);
+  }
+}
+
+export async function backfillChunkEmbedding(
+  admin: SupabaseClient,
+  chunkId: string,
+  embedding: number[],
+): Promise<void> {
+  const { error } = await admin.from("document_chunks").update({ embedding }).eq("id", chunkId);
+
+  if (error) {
+    throw new Error(`Failed to backfill embedding for chunk ${chunkId}: ${error.message}`);
   }
 }

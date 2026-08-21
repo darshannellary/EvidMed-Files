@@ -5,7 +5,7 @@ const VOYAGE_DIMENSIONS = 1024;
 export class VoyageEmbeddingError extends Error {}
 
 interface VoyageEmbeddingsResponse {
-  data: Array<{ embedding: number[] }>;
+  data: Array<{ embedding: number[]; index?: number }>;
 }
 
 /**
@@ -15,11 +15,17 @@ interface VoyageEmbeddingsResponse {
  * `inputType` matches Voyage's asymmetric-retrieval convention: ingested documents use
  * "document", queries use "query". Untested whether the two are actually comparable for this
  * product's data until run against a real corpus.
+ *
+ * Accepts multiple texts per call (Voyage's endpoint already accepts an array input — a single
+ * embedText() call previously just always sent an array of exactly 1). Batching lets ingestion
+ * embed many chunks of one document in a handful of API calls instead of one per chunk.
  */
-export async function embedText(
-  text: string,
+export async function embedTexts(
+  texts: string[],
   inputType: "query" | "document" = "document",
-): Promise<number[]> {
+): Promise<number[][]> {
+  if (texts.length === 0) return [];
+
   const apiKey = process.env.VOYAGE_API_KEY;
   if (!apiKey) {
     throw new VoyageEmbeddingError("VOYAGE_API_KEY is not set");
@@ -32,7 +38,7 @@ export async function embedText(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      input: [text],
+      input: texts,
       model: VOYAGE_MODEL,
       input_type: inputType,
       output_dimension: VOYAGE_DIMENSIONS,
@@ -47,13 +53,33 @@ export async function embedText(
   }
 
   const json = (await response.json()) as VoyageEmbeddingsResponse;
-  const embedding = json.data?.[0]?.embedding;
+  const rows = json.data ?? [];
 
-  if (!Array.isArray(embedding) || embedding.length !== VOYAGE_DIMENSIONS) {
+  if (rows.length !== texts.length) {
     throw new VoyageEmbeddingError(
-      `Unexpected Voyage response shape: expected a ${VOYAGE_DIMENSIONS}-dim embedding, got ${JSON.stringify(json).slice(0, 200)}`,
+      `Expected ${texts.length} embeddings, got ${rows.length}: ${JSON.stringify(json).slice(0, 200)}`,
     );
   }
 
+  // Defensive: sort by each row's `index` field (mapping back to input position) rather than
+  // trusting response order, since nothing in this codebase has verified that ordering against a
+  // real API response yet.
+  const ordered = [...rows].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+
+  return ordered.map((row, i) => {
+    if (!Array.isArray(row.embedding) || row.embedding.length !== VOYAGE_DIMENSIONS) {
+      throw new VoyageEmbeddingError(
+        `Unexpected embedding shape at index ${i}: expected ${VOYAGE_DIMENSIONS} dims`,
+      );
+    }
+    return row.embedding;
+  });
+}
+
+export async function embedText(
+  text: string,
+  inputType: "query" | "document" = "document",
+): Promise<number[]> {
+  const [embedding] = await embedTexts([text], inputType);
   return embedding;
 }

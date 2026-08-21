@@ -2,7 +2,7 @@ import { backfillEmbeddings } from "./pipeline";
 
 async function main() {
   const { succeeded, failed } = await backfillEmbeddings();
-  console.log(`Backfilled ${succeeded} document(s), ${failed} failed.`);
+  console.log(`Backfilled ${succeeded} chunk(s), ${failed} failed.`);
   if (failed > 0) process.exit(1);
 }
 

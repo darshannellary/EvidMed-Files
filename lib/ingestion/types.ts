@@ -39,11 +39,3 @@ export interface ExtractionResult {
   pageCount: number;
   warnings: string[];
 }
-
-export interface IngestPayload {
-  source: DocumentSource;
-  tier: DocumentTier;
-  title: string;
-  raw_text: string | null;
-  embedding: number[] | null;
-}

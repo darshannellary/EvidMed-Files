@@ -1,4 +1,4 @@
-import type { RetrievedDocument, ValidationResult } from "./types";
+import type { RetrievedChunk, ValidationResult } from "./types";
 
 const CITATION_MARKER_RE = /\[(\d+)\]/g;
 
@@ -12,14 +12,23 @@ export const NO_ANSWER_SENTINEL = "NO_RELEVANT_SOURCES";
 
 /**
  * Mechanical validation, not prompt-trust — the concrete enforcement of "No-Citation, No-Output."
- * Guarantees every marker is well-formed and references a real retrieved document. Does NOT
+ * Guarantees every marker is well-formed and references a real retrieved chunk. Does NOT
  * mechanically prove every factual sentence carries a marker (that would need a real
  * claim-detector, out of scope here) — it only fails closed if the response has zero markers,
  * unless the response is the explicit NO_ANSWER_SENTINEL.
+ *
+ * Citation granularity is per-chunk, not per-document: the aggregation key here has always been
+ * "the citation marker's array index" — the only reason this used to collapse to per-document was
+ * that the array previously held one row per whole document. Now that the array holds one row per
+ * chunk, two different chunks of the same document, cited in two different sentences, correctly
+ * produce two separate citation rows (same documentId, different chunkId, own claimText) instead
+ * of collapsing into one row with both sentences concatenated. Residual, still-accepted coarseness:
+ * the *same* chunk cited across two non-contiguous sentences still collapses to one row
+ * (aggregation key is chunk index, not sentence index).
  */
 export function validateCitations(
   responseText: string,
-  docs: RetrievedDocument[],
+  chunks: RetrievedChunk[],
 ): ValidationResult {
   if (responseText.trim() === NO_ANSWER_SENTINEL) {
     return { valid: true, citations: [] };
@@ -32,30 +41,34 @@ export function validateCitations(
   }
 
   for (const n of markers) {
-    if (n < 1 || n > docs.length) {
+    if (n < 1 || n > chunks.length) {
       return {
         valid: false,
-        reason: `citation [${n}] references a document outside the retrieved set (1-${docs.length})`,
+        reason: `citation [${n}] references a source outside the retrieved set (1-${chunks.length})`,
       };
     }
   }
 
-  // Sentence-level pass: co-locate each marker with its sentence to build per-document claimText.
+  // Sentence-level pass: co-locate each marker with its sentence to build per-chunk claimText.
   const sentences = responseText.split(/(?<=[.!?])\s+/);
-  const byDoc = new Map<number, string[]>();
+  const byChunk = new Map<number, string[]>();
 
   for (const sentence of sentences) {
     for (const m of sentence.matchAll(CITATION_MARKER_RE)) {
       const idx = Number(m[1]);
-      if (!byDoc.has(idx)) byDoc.set(idx, []);
-      byDoc.get(idx)!.push(sentence.trim());
+      if (!byChunk.has(idx)) byChunk.set(idx, []);
+      byChunk.get(idx)!.push(sentence.trim());
     }
   }
 
-  const citations = [...byDoc.entries()].map(([idx, docSentences]) => ({
-    documentId: docs[idx - 1].id,
-    claimText: docSentences.join(" "),
-  }));
+  const citations = [...byChunk.entries()].map(([idx, chunkSentences]) => {
+    const chunk = chunks[idx - 1];
+    return {
+      documentId: chunk.document_id,
+      chunkId: chunk.chunk_id,
+      claimText: chunkSentences.join(" "),
+    };
+  });
 
   return { valid: true, citations };
 }

@@ -38,7 +38,7 @@ export async function completeQuery(
 export async function insertCitations(
   admin: SupabaseClient,
   queryId: string,
-  citations: { documentId: string; claimText: string }[],
+  citations: { documentId: string; chunkId: string; claimText: string }[],
 ): Promise<void> {
   if (citations.length === 0) return;
 
@@ -46,6 +46,7 @@ export async function insertCitations(
     citations.map((c) => ({
       query_id: queryId,
       document_id: c.documentId,
+      chunk_id: c.chunkId,
       claim_text: c.claimText,
     })),
   );

@@ -39,8 +39,8 @@ function parseArgs(argv: string[]) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const { id } = await ingestDocument(args);
-  console.log(`Ingested "${args.title}" as document ${id}`);
+  const { id, chunkCount } = await ingestDocument(args);
+  console.log(`Ingested "${args.title}" as document ${id} (${chunkCount} chunk(s))`);
 }
 
 main().catch((err) => {
