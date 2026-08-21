@@ -1,14 +1,13 @@
 "use server";
 
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OtpRateLimitError, OtpVerificationError } from "@/lib/doctors/otp";
 import { PasswordResetEmailSendError } from "@/lib/email/send-password-reset-otp";
 import { requestPasswordReset, resetPassword } from "@/lib/doctors/password-reset";
 
 export interface ForgotPasswordFormState {
-  phase: "request" | "code_sent";
+  phase: "request" | "code_sent" | "done";
   error?: string;
   email?: string;
 }
@@ -78,7 +77,7 @@ export async function forgotPasswordAction(
       };
     }
 
-    redirect("/login");
+    return { phase: "done" };
   }
 
   return prevState;

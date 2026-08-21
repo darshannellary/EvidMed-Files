@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { forgotPasswordAction, type ForgotPasswordFormState } from "./actions";
 import styles from "../verify/verify.module.css";
 
@@ -15,6 +16,14 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
+
+  if (state.phase === "done") {
+    return (
+      <p role="status" className={styles.successMessage}>
+        Password has been reset. Login <Link href="/login">here</Link>.
+      </p>
+    );
+  }
 
   const codeSent = state.phase === "code_sent";
 
