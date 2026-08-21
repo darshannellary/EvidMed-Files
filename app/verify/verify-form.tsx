@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { verifyFormAction, type VerifyFormState } from "./actions";
 import styles from "./verify.module.css";
 
@@ -20,18 +20,39 @@ const KNOWN_COUNCILS = [
 export function VerifyForm() {
   const [state, formAction, isPending] = useActionState(verifyFormAction, INITIAL_STATE);
 
+  // React resets all UNCONTROLLED inputs in a <form> after its action completes — not just the
+  // field relevant to whichever button was clicked, the whole form. Every field here is
+  // deliberately controlled via useState specifically to avoid that: state persists across the
+  // send-otp/verify-otp/submit steps regardless of React's post-action reset behavior.
+  const [name, setName] = useState("");
+  const [registrationCouncil, setRegistrationCouncil] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+
   const emailVerified = state.phase !== "details";
   const otpVerified = state.phase === "otp_verified";
 
   return (
     <form action={formAction} className={styles.form}>
-      <input type="hidden" name="otpVerificationId" value={state.otpVerificationId ?? ""} />
+      <input type="hidden" name="otpVerificationId" value={state.otpVerificationId ?? ""} readOnly />
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="name">
           Full name
         </label>
-        <input id="name" name="name" className={styles.input} required minLength={2} maxLength={200} />
+        <input
+          id="name"
+          name="name"
+          className={styles.input}
+          required
+          minLength={2}
+          maxLength={200}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
 
       <div className={styles.field}>
@@ -44,6 +65,8 @@ export function VerifyForm() {
           className={styles.input}
           required
           list="councils"
+          value={registrationCouncil}
+          onChange={(e) => setRegistrationCouncil(e.target.value)}
         />
         <datalist id="councils">
           {KNOWN_COUNCILS.map((c) => (
@@ -63,6 +86,8 @@ export function VerifyForm() {
           required
           minLength={2}
           maxLength={100}
+          value={registrationNumber}
+          onChange={(e) => setRegistrationNumber(e.target.value)}
         />
       </div>
 
@@ -77,6 +102,8 @@ export function VerifyForm() {
           className={styles.input}
           required
           placeholder="98765 43210"
+          value={contactPhone}
+          onChange={(e) => setContactPhone(e.target.value)}
         />
       </div>
 
@@ -91,6 +118,8 @@ export function VerifyForm() {
           className={styles.input}
           required
           minLength={8}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
       </div>
 
@@ -106,7 +135,8 @@ export function VerifyForm() {
             className={styles.input}
             required
             readOnly={emailVerified}
-            defaultValue={state.email ?? ""}
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
           />
           {!emailVerified && (
             <button
@@ -138,6 +168,8 @@ export function VerifyForm() {
               maxLength={6}
               inputMode="numeric"
               pattern="\d{6}"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value)}
             />
             <button
               type="submit"
