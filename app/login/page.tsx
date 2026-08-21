@@ -18,6 +18,9 @@ export default function LoginPage() {
           yet? <Link href="/verify">Submit your registration</Link>.
         </p>
         <LoginForm />
+        <p className={styles.description} style={{ marginTop: "1rem" }}>
+          <Link href="/forgot-password">Forgot password?</Link>
+        </p>
       </div>
     </main>
   );
