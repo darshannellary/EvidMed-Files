@@ -54,8 +54,13 @@ async function main() {
 
     case "approve": {
       requireId(flags);
-      await approveDoctor(admin, flags.id);
+      const result = await approveDoctor(admin, flags.id);
       console.log(`Approved doctor ${flags.id}.`);
+      if (result.emailSent) {
+        console.log("Approval email sent.");
+      } else {
+        console.warn(`Approval email NOT sent: ${result.emailError}`);
+      }
       return;
     }
 
