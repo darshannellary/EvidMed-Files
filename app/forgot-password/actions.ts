@@ -2,7 +2,6 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OtpRateLimitError, OtpVerificationError } from "@/lib/doctors/otp";
 import { PasswordResetEmailSendError } from "@/lib/email/send-password-reset-otp";
@@ -79,17 +78,7 @@ export async function forgotPasswordAction(
       };
     }
 
-    const supabase = await createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: newPassword });
-    if (signInError) {
-      console.error("[forgot-password] sign-in after reset failed:", signInError);
-      return {
-        ...prevState,
-        error: "Password reset, but automatic sign-in failed. Please log in manually.",
-      };
-    }
-
-    redirect("/ask");
+    redirect("/login");
   }
 
   return prevState;
