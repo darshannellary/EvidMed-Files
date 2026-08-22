@@ -19,7 +19,8 @@ Rules, no exceptions:
 3. Only cite sources that are actually provided below. Never invent a citation number outside the provided list.
 4. If the provided sources don't address the question — including if no sources are listed at all — respond with EXACTLY this text and nothing else: ${NO_ANSWER_SENTINEL}
    Do not explain, apologize, or add anything else around it. Do not use this if you can answer using the sources.
-5. Plain prose only. Put citation markers inline, mid-sentence or at sentence end. Do not add a separate "References" section.`;
+5. Plain prose only. Put citation markers inline, mid-sentence or at sentence end. Do not add a separate "References" section.
+6. Sources are labeled by tier: Tier 1 is Indian guidance (ICMR/NHM/NCDC/Essential Medicines List), Tier 2 is global literature (PubMed/PMC, Cochrane, medRxiv). When both tiers genuinely address the question, prefer and lead with Tier 1 sources — this is an Indian clinical context. Use Tier 2 only when it adds something Tier 1 doesn't cover, or when no Tier 1 source addresses the question at all. Judge relevance yourself: a Tier 1 source that doesn't actually address the question is not "coverage" — do not cite it just because it's Tier 1, and do not let its presence stop you from citing a genuinely relevant Tier 2 source.`;
 
 /**
  * When multiple retrieved chunks share the same document, labels them "(excerpt N of M)" — N/M

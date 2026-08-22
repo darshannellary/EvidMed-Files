@@ -3,6 +3,13 @@ import { embedText } from "@/lib/ingestion/embed";
 import { retrieveDocuments } from "./retrieve";
 import { synthesizeAnswer } from "./synthesize";
 import { insertQuery, completeQuery, insertCitations } from "./persist";
+import { NO_ANSWER_SENTINEL } from "./validate";
+
+// Claude's internal "nothing to cite" signal (see validate.ts) is a machine-checkable marker, not
+// user-facing copy — shown raw, a doctor would see the literal string "NO_RELEVANT_SOURCES"
+// instead of a sentence. Swapped for this message before it's returned to the UI or persisted.
+const NO_RELEVANT_SOURCES_MESSAGE =
+  "The available sources don't address this question. Try rephrasing, or narrowing to a more specific clinical question.";
 
 export interface AnswerQueryArgs {
   doctorId: string;
@@ -45,6 +52,9 @@ export async function answerQuery(args: AnswerQueryArgs): Promise<AnswerQueryRes
     citations = [];
   } else {
     ({ responseText, citations } = await synthesizeAnswer(args.queryText, chunks));
+    if (responseText.trim() === NO_ANSWER_SENTINEL) {
+      responseText = NO_RELEVANT_SOURCES_MESSAGE;
+    }
   }
 
   const responseTimeMs = Date.now() - startedAt;

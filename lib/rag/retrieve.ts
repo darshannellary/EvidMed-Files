@@ -14,10 +14,6 @@ const MAX_CONTEXT_CHUNKS = 8;
 // cluster measurably closer to 0 than that single data point — worth re-verifying once real
 // chunked data exists, not assumed to still be the right number.
 const MAX_DISTANCE = 0.75;
-// Post-chunking, even one ingested document produces many chunks, so this is no longer "raise
-// this once the corpus has more than one document" — the real justification is just the
-// still-small/early corpus overall. Raise as more documents are ingested.
-const MIN_TIER1_RESULTS = 1;
 
 async function callMatchDocumentChunks(
   admin: SupabaseClient,
@@ -40,9 +36,20 @@ async function callMatchDocumentChunks(
 }
 
 /**
- * Tier-1-then-Tier-2 retrieval: Tier 1 is always checked first, and Tier 2 is only queried (and
- * therefore only ever surfaced) if Tier 1 doesn't return enough results. This is the concrete
- * enforcement of the product's "India-grounded first" principle.
+ * Both tiers are always queried (budget permitting) — a Tier-1 match is no longer treated as
+ * sufficient reason to skip Tier 2, regardless of whether that Tier-1 match is actually relevant
+ * to the question. A prior version returned early on any Tier-1 result, which meant a single
+ * barely-closer-than-irrelevant Tier-1 chunk (e.g. cosine distance 0.6026, just inside
+ * MAX_DISTANCE) could silently block a genuinely relevant Tier-2 source from ever being
+ * considered — with only 2 data points calibrating MAX_DISTANCE, there's no safe global cutoff
+ * that reliably separates "relevant" from "merely closest available."
+ *
+ * "India-grounded first" is now enforced at synthesis time instead: Tier 1 chunks are still
+ * ordered first in the returned array, and lib/rag/synthesize.ts's system prompt explicitly
+ * instructs Claude to prefer them when both tiers genuinely address the question. Claude's own
+ * judgment of relevance at answer time is a better gate than a blind retrieval-time distance
+ * threshold — this fixes the false-negative case (irrelevant Tier 1 blocking real Tier 2 content)
+ * without needing a fragile, still-just-as-fragile-with-2-data-points MAX_DISTANCE recalibration.
  *
  * Multiple chunks from the same parent document can now legitimately both appear in one result
  * set — structurally impossible before chunking (one row, one embedding, per whole document).
@@ -55,9 +62,6 @@ export async function retrieveDocuments(
   queryEmbedding: number[],
 ): Promise<RetrievedChunk[]> {
   const tier1 = await callMatchDocumentChunks(admin, queryEmbedding, 1, TIER1_MATCH_COUNT);
-  if (tier1.length >= MIN_TIER1_RESULTS) {
-    return tier1;
-  }
 
   const remaining = MAX_CONTEXT_CHUNKS - tier1.length;
   const tier2 =
@@ -65,7 +69,7 @@ export async function retrieveDocuments(
       ? await callMatchDocumentChunks(admin, queryEmbedding, 2, Math.min(TIER2_MATCH_COUNT, remaining))
       : [];
 
-  // Tier 1 chunks always ordered first, even when Tier 2 is appended — preserves prioritization
-  // and keeps citation-marker array positions correct in lib/rag/synthesize.ts.
+  // Tier 1 chunks always ordered first, even though Tier 2 is now always queried too — preserves
+  // prioritization and keeps citation-marker array positions correct in lib/rag/synthesize.ts.
   return [...tier1, ...tier2];
 }
