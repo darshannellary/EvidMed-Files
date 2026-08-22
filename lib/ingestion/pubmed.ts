@@ -125,9 +125,16 @@ export async function fetchPmcFullText(
     throw new PubMedApiError(`BioC-PMC request failed: ${response.status} ${response.statusText}`);
   }
 
-  const json = (await response.json()) as {
-    documents?: Array<{ passages?: Array<{ text?: string }> }>;
-  };
+  // The API returns 200 with a plain-text/HTML "[Error] : No result can be found." body -- not a
+  // 404/400 -- when the article isn't in the Open Access subset. That's the same "not available"
+  // signal as the 404/400 case above, just delivered with a 200 status.
+  const rawBody = await response.text();
+  let json: { documents?: Array<{ passages?: Array<{ text?: string }> }> };
+  try {
+    json = JSON.parse(rawBody);
+  } catch {
+    return null;
+  }
 
   const passages = json.documents?.[0]?.passages ?? [];
   const texts = passages.map((p) => p.text?.trim()).filter((t): t is string => !!t);
