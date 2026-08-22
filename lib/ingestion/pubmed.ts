@@ -133,14 +133,17 @@ export async function fetchPmcFullText(
   // 404/400 — when the article isn't in the Open Access subset. That's the same "not available"
   // signal as the 404/400 case above, just delivered with a 200 status.
   const rawBody = await response.text();
-  let json: { documents?: Array<{ passages?: Array<{ text?: string }> }> };
+  let json: Array<{ documents?: Array<{ passages?: Array<{ text?: string }> }> }>;
   try {
     json = JSON.parse(rawBody);
   } catch {
     return null;
   }
 
-  const passages = json.documents?.[0]?.passages ?? [];
+  // The response is a top-level array of BioCCollection objects, not a single object — a prior
+  // version of this code read `json.documents` directly and always got undefined, silently
+  // treating every real Open Access article as "not available."
+  const passages = json[0]?.documents?.[0]?.passages ?? [];
   const texts = passages.map((p) => p.text?.trim()).filter((t): t is string => !!t);
 
   if (texts.length === 0) return null;
