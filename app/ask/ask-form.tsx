@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { askAction, type AskFormState } from "./actions";
 import styles from "../verify/verify.module.css";
 
@@ -9,9 +9,25 @@ const INITIAL_STATE: AskFormState = {};
 export function AskForm() {
   const [state, formAction, isPending] = useActionState(askAction, INITIAL_STATE);
 
+  // React resets uncontrolled form fields once an action completes — controlling this field
+  // ourselves (same pattern as verify-form.tsx) keeps the submitted question visible instead of
+  // the box going blank after the answer comes back.
+  const [queryText, setQueryText] = useState("");
+  // Set in the submit handler (a normal event, not an effect), not derived from `state` — comparing
+  // it against the current queryText at render time is enough to tell "this is the question that
+  // was just answered" apart from "the doctor has started typing a new one."
+  const [submittedText, setSubmittedText] = useState<string | null>(null);
+
+  const isAnswered =
+    Boolean(state.responseText || state.error) && queryText === submittedText;
+
   return (
     <div>
-      <form action={formAction} className={styles.form}>
+      <form
+        action={formAction}
+        onSubmit={() => setSubmittedText(queryText)}
+        className={styles.form}
+      >
         <div className={styles.field}>
           <label className={styles.label} htmlFor="queryText">
             Your clinical research question
@@ -22,7 +38,13 @@ export function AskForm() {
             className={styles.input}
             required
             rows={3}
-            style={{ resize: "vertical", fontFamily: "inherit" }}
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            style={{
+              resize: "vertical",
+              fontFamily: "inherit",
+              color: isAnswered ? "var(--muted-foreground)" : undefined,
+            }}
           />
         </div>
 
@@ -37,17 +59,8 @@ export function AskForm() {
         </button>
       </form>
 
-      {/* React resets the textarea above once the action succeeds, so the submitted question is
-          shown here instead — echoed back from the action's own returned state, not read from
-          the (by-then-cleared) form field. */}
-      {state.queryText && (state.responseText || state.error) && (
-        <p className={styles.hint} style={{ marginTop: "1.5rem" }}>
-          You asked: {state.queryText}
-        </p>
-      )}
-
       {state.responseText && (
-        <div style={{ marginTop: "0.75rem" }}>
+        <div style={{ marginTop: "2rem" }}>
           <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{state.responseText}</p>
           <p className={styles.hint} style={{ marginTop: "0.75rem" }}>
             {state.citationCount} citation{state.citationCount === 1 ? "" : "s"} recorded
