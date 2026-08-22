@@ -53,9 +53,13 @@ export async function searchPubMed(
   query: string,
   maxResults: number = DEFAULT_MAX_SEARCH_RESULTS,
 ): Promise<PubMedSearchResult[]> {
+  // "free full text[Filter]" cuts down on results that turn out not to be in the PMC Open Access
+  // Subset (what fetchPmcFullText actually serves) — but it's not a perfect guarantee: "free to
+  // read" and "freely redistributable" (what the OA Subset specifically is) aren't identical, so
+  // ingestFromPubMed can still legitimately reject a result from this filtered search.
   const searchParams = ncbiParams({
     db: "pubmed",
-    term: query,
+    term: `${query} AND free full text[Filter]`,
     retmode: "json",
     retmax: String(maxResults),
   });
@@ -125,8 +129,8 @@ export async function fetchPmcFullText(
     throw new PubMedApiError(`BioC-PMC request failed: ${response.status} ${response.statusText}`);
   }
 
-  // The API returns 200 with a plain-text/HTML "[Error] : No result can be found." body -- not a
-  // 404/400 -- when the article isn't in the Open Access subset. That's the same "not available"
+  // The API returns 200 with a plain-text/HTML "[Error] : No result can be found." body — not a
+  // 404/400 — when the article isn't in the Open Access subset. That's the same "not available"
   // signal as the 404/400 case above, just delivered with a 200 status.
   const rawBody = await response.text();
   let json: { documents?: Array<{ passages?: Array<{ text?: string }> }> };

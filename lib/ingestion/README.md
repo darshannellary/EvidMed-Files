@@ -94,3 +94,9 @@ fresh title if this happens (check `npm run ingest`'s output/logs).
   (low text yield per page) rather than silently ingesting garbage. Whether real ICMR/NHM/NCDC PDFs
   need OCR is unknown until real sample documents are tested — build note in the tech spec calls
   this "the most tedious, least AI-magic part of the build."
+
+`pubmed:search` automatically appends `free full text[Filter]` to every query to cut down on
+results that turn out not to be in the OA subset — this reduces, but doesn't eliminate, the chance
+of picking a PMID that `pubmed:ingest` then refuses. "Free to read" and "freely redistributable"
+(what the OA Subset specifically requires) aren't identical, confirmed by real testing: several
+candidates from an initial search all had PMC records but weren't in the OA subset.
