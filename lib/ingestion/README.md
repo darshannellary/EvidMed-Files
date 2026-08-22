@@ -1,13 +1,16 @@
 # Document Ingestion Pipeline
 
-Extracts text from a Tier-1/Tier-2 PDF, splits it into paragraph-aware chunks
-(`lib/ingestion/chunk.ts`), embeds each chunk via Voyage AI (`voyage-3-large`, 1024 dims), and
-inserts the document into `documents` and its chunks (with per-chunk embeddings) into
+Two ways to get a document in: a manual PDF (any Tier-1 or Tier-2 source) or an automated pull
+from PubMed/PMC (Tier-2 `PubMedCentral` only). Both extract text, split it into paragraph-aware
+chunks (`lib/ingestion/chunk.ts`), embed each chunk via Voyage AI (`voyage-3-large`, 1024 dims),
+and insert the document into `documents` and its chunks (with per-chunk embeddings) into
 `document_chunks`, using the service-role admin client (RLS has no anon/authenticated write
 policies, so this is the only write path — see `supabase/migrations/20260818090100_enable_rls.sql`
-and `20260821130000_document_chunks_schema.sql`).
+and `20260821130000_document_chunks_schema.sql`). The chunk→embed→insert steps are shared code
+(`ingestExtractedText` in `lib/ingestion/pipeline.ts`) — only how the raw text gets extracted
+differs between the two paths.
 
-## Usage
+## Usage: manual PDF
 
 ```bash
 npm run ingest -- ./samples/icmr-tb-guidelines.pdf --source=ICMR --tier=1 --title="TB Guidelines 2024"
@@ -27,6 +30,40 @@ Valid `--source` values and their required `--tier`:
 
 Requires `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `VOYAGE_API_KEY` in
 `.env.local`.
+
+## Usage: PubMed / PMC (Tier 2 only)
+
+Two-step, founder-curated workflow — nothing is ingested automatically. First, search and review:
+
+```bash
+npm run pubmed:search -- "tuberculosis treatment guidelines" [--max=20]
+```
+
+Prints a numbered list (PMID, title, journal, publication date). Pick one, then ingest it by PMID:
+
+```bash
+npm run pubmed:ingest -- --pmid=12345678 [--title="Override title"]
+```
+
+If `--title` is omitted, the article's real title (from PubMed) is used automatically.
+
+**Full-text only, no abstract fallback.** Only articles in PMC's Open Access Subset — the subset
+NCBI's terms allow full-text reuse of — can be ingested. If a PMID has no PMC record at all, or is
+in PMC but not in the OA subset, `pubmed:ingest` refuses and says exactly why, rather than silently
+substituting a thin ~250-word abstract as if it were a substantive Tier-2 source.
+
+Requires `NCBI_API_EMAIL` in `.env.local` (NCBI's usage policy expects a contact email on every
+request — free, no signup needed for this alone). `NCBI_API_KEY` is optional and only raises the
+rate limit from 3 req/sec to 10/sec; not needed for this founder-run, one-at-a-time workflow.
+
+Documents ingested this way get `external_id` (the PMID) and `source_url` (the canonical PMC
+article link) populated — re-running `pubmed:ingest` on an already-ingested PMID is rejected with
+a clear "already ingested as document {id}" error, not a silent duplicate.
+
+**Response shapes for NCBI's esearch/esummary/ID-Converter/BioC-PMC APIs (`lib/ingestion/pubmed.ts`)
+are built from their documented formats, not verified against a live call** — no real
+`NCBI_API_EMAIL`/network access exists in this session's sandbox. Treat the first real
+`pubmed:search`/`pubmed:ingest` run as the actual verification of these assumptions.
 
 ## Chunking
 

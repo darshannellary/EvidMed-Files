@@ -5,7 +5,14 @@ import type { DocumentSource, DocumentTier } from "./types";
 // a fake Supabase stub without touching a real database.
 export async function insertDocument(
   admin: SupabaseClient,
-  payload: { source: DocumentSource; tier: DocumentTier; title: string; raw_text: string },
+  payload: {
+    source: DocumentSource;
+    tier: DocumentTier;
+    title: string;
+    raw_text: string;
+    external_id?: string;
+    source_url?: string;
+  },
 ): Promise<{ id: string }> {
   const { data, error } = await admin
     .from("documents")
@@ -14,6 +21,8 @@ export async function insertDocument(
       tier: payload.tier,
       title: payload.title,
       raw_text: payload.raw_text,
+      external_id: payload.external_id ?? null,
+      source_url: payload.source_url ?? null,
     })
     .select("id")
     .single();

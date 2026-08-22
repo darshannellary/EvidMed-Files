@@ -9,6 +9,8 @@
     "lint": "eslint",
     "ingest": "tsx --env-file=.env.local lib/ingestion/cli.ts",
     "ingest:backfill-embeddings": "tsx --env-file=.env.local lib/ingestion/backfill-cli.ts",
+    "pubmed:search": "tsx --env-file=.env.local lib/ingestion/pubmed-search-cli.ts",
+    "pubmed:ingest": "tsx --env-file=.env.local lib/ingestion/pubmed-ingest-cli.ts",
     "query": "tsx --env-file=.env.local lib/rag/cli.ts",
     "doctors:list": "tsx --env-file=.env.local lib/doctors/cli.ts list",
     "doctors:approve": "tsx --env-file=.env.local lib/doctors/cli.ts approve",
