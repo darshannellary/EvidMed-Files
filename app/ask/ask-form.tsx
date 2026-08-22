@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { askAction, type AskFormState } from "./actions";
 import styles from "../verify/verify.module.css";
 
@@ -32,10 +32,19 @@ export function AskForm() {
         // resync against it from the outside. Submitting manually via onSubmit and calling the
         // dispatch function directly (a fully supported call shape per useActionState's own type
         // signature) sidesteps that special path entirely.
+        //
+        // The manual dispatch call is wrapped in startTransition because useActionState's own
+        // isPending only flips true when the dispatch runs inside a transition (confirmed in the
+        // same react-dom source: dispatchActionState checks ReactSharedInternals.T, which <form
+        // action> normally sets for you) — startTransition restores that without going through
+        // the form-action code path that caused the reset bug above.
         onSubmit={(e) => {
           e.preventDefault();
           setSubmittedText(queryText);
-          formAction(new FormData(e.currentTarget));
+          const formData = new FormData(e.currentTarget);
+          startTransition(() => {
+            formAction(formData);
+          });
         }}
         className={styles.form}
       >
