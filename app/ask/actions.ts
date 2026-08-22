@@ -9,6 +9,10 @@ export interface AskFormState {
   error?: string;
   responseText?: string;
   citationCount?: number;
+  // Echoed back so the UI can still show what was asked after React resets the form's own
+  // textarea on action success — the textarea's DOM value isn't a reliable source once that
+  // happens, but this survives in the action's returned state.
+  queryText?: string;
 }
 
 export async function askAction(
@@ -32,10 +36,13 @@ export async function askAction(
       doctorId: result.doctor.id,
       queryText,
     });
-    return { responseText, citationCount };
+    return { responseText, citationCount, queryText };
   } catch (err) {
     console.error("[ask] query failed:", err);
-    return { error: "Something went wrong answering your question. Please try again." };
+    return {
+      error: "Something went wrong answering your question. Please try again.",
+      queryText,
+    };
   }
 }
 

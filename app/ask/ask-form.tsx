@@ -37,8 +37,17 @@ export function AskForm() {
         </button>
       </form>
 
+      {/* React resets the textarea above once the action succeeds, so the submitted question is
+          shown here instead — echoed back from the action's own returned state, not read from
+          the (by-then-cleared) form field. */}
+      {state.queryText && (state.responseText || state.error) && (
+        <p className={styles.hint} style={{ marginTop: "1.5rem" }}>
+          You asked: {state.queryText}
+        </p>
+      )}
+
       {state.responseText && (
-        <div style={{ marginTop: "2rem" }}>
+        <div style={{ marginTop: "0.75rem" }}>
           <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{state.responseText}</p>
           <p className={styles.hint} style={{ marginTop: "0.75rem" }}>
             {state.citationCount} citation{state.citationCount === 1 ? "" : "s"} recorded
