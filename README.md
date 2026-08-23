@@ -4,6 +4,8 @@ An AI-powered research-synthesis platform that verifies Indian doctors (NMC / St
 Council) and delivers cited, evidence-based clinical answers grounded first in Indian medical
 guidance (ICMR, NHM, NCDC), falling back to global open-access literature.
 
+**Live:** [evidmedai.com](https://evidmedai.com)
+
 ## Core Product Principles (non-negotiable)
 
 1. **No-Citation, No-Output.** Every factual claim must carry an inline citation to a validated
@@ -37,7 +39,9 @@ cp .env.example .env.local   # fill in your Supabase/Claude/Voyage keys
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) — this is your own local dev server, only
+reachable on your machine. To share the app with someone else, send them the live link above
+instead.
 
 ## Project Structure
 
@@ -74,7 +78,7 @@ run for real against the founder's Supabase/Voyage/Anthropic/Resend/Vercel accou
   cited answer, citation enforcement verified in code (not just prompted for) — (live-verified)
 - Doctor verification queue (founder CLI review side): real form submission with a real
   certificate upload, reviewed and approved via the CLI — (live-verified)
-- Deployed to Vercel, live on a public URL — (live-verified)
+- Deployed to Vercel, live at [evidmedai.com](https://evidmedai.com) — (live-verified)
 - **Doctor-facing login + self-service `/ask`**: a doctor creates a real password-protected
   account, verified via a mandatory email OTP + Indian-phone validation, across a two-page flow
   (`/verify` for details+OTP+account creation, `/verify/certificate` for the upload) — then logs
