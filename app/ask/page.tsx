@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthedDoctor } from "@/lib/auth/session";
 import { AskForm } from "./ask-form";
@@ -72,7 +73,12 @@ export default async function AskPage() {
     <main className={styles.page}>
       <LogoutButton />
       <div className={styles.card}>
-        <h1 className={styles.heading}>Ask EvidMed AI</h1>
+        <div className={styles.topLinks}>
+          <h1 className={styles.heading}>Ask EvidMed AI</h1>
+          <Link href="/ask/history" className={styles.navLink}>
+            Question history →
+          </Link>
+        </div>
         <p className={styles.description}>
           Ask a clinical research question. Answers are grounded first in Indian medical guidance
           (ICMR, NHM, NCDC), with every claim carrying an inline citation.

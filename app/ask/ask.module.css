@@ -122,3 +122,66 @@
 .logoutButton:hover {
   opacity: 0.85;
 }
+
+.topLinks {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.navLink {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.navLink:hover {
+  text-decoration: underline;
+}
+
+.historyList {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.historyEntry {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+}
+
+.historyQuestion {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.historyMeta {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.historyAnswer {
+  margin-top: 0.875rem;
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+
+.sourcesLine {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.emptyState {
+  margin-top: 2rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+}
