@@ -76,7 +76,7 @@ export default async function AskPage() {
         <div className={styles.topLinks}>
           <h1 className={styles.heading}>Ask EvidMed AI</h1>
           <Link href="/ask/history" className={styles.navLink}>
-            Question history →
+            Recent History
           </Link>
         </div>
         <p className={styles.description}>
