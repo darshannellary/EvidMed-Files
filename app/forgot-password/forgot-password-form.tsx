@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { forgotPasswordAction, type ForgotPasswordFormState } from "./actions";
+import { PasswordInput } from "../components/password-input";
 import styles from "../verify/verify.module.css";
 
 const INITIAL_STATE: ForgotPasswordFormState = { phase: "request" };
@@ -66,10 +67,9 @@ export function ForgotPasswordForm() {
             <label className={styles.label} htmlFor="newPassword">
               New password
             </label>
-            <input
+            <PasswordInput
               id="newPassword"
               name="newPassword"
-              type="password"
               className={styles.input}
               required
               minLength={8}

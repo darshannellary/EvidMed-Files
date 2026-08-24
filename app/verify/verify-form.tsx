@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { verifyFormAction, type VerifyFormState } from "./actions";
+import { PasswordInput } from "../components/password-input";
 import styles from "./verify.module.css";
 
 const INITIAL_STATE: VerifyFormState = { phase: "details" };
@@ -111,10 +112,9 @@ export function VerifyForm() {
         <label className={styles.label} htmlFor="password">
           Password <span className={styles.hint}>(usable once your certificate is verified)</span>
         </label>
-        <input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           className={styles.input}
           required
           minLength={8}

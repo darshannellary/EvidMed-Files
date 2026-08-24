@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginFormState } from "./actions";
+import { PasswordInput } from "../components/password-input";
 // Shared form styling — no login-specific styles needed yet.
 import styles from "../verify/verify.module.css";
 
@@ -23,7 +24,7 @@ export function LoginForm() {
         <label className={styles.label} htmlFor="password">
           Password
         </label>
-        <input id="password" name="password" type="password" className={styles.input} required />
+        <PasswordInput id="password" name="password" className={styles.input} required />
       </div>
 
       {state.error && (
