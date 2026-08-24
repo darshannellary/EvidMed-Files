@@ -73,6 +73,36 @@ export async function rejectDoctor(
   }
 }
 
+/**
+ * Reverses a previous approval — e.g. a doctor was verified in error (wrong person approved, or
+ * later found not to actually be a registered practitioner). Distinct from rejectDoctor: that's
+ * for a fresh pending application; this is specifically for undoing a verified status, so it
+ * requires an explicit reason (rejectDoctor's is optional) and refuses if the doctor isn't
+ * currently verified — revoking a pending/already-rejected doctor wouldn't mean anything and
+ * likely signals the wrong --id was passed. The DB update itself is identical to a rejection
+ * (verification_status: "rejected"): any authenticated request re-derives the doctor's status via
+ * getAuthedDoctor() on every /ask submission and page load, so this alone is enough to cut off
+ * access on the doctor's very next request — no separate session invalidation needed.
+ */
+export async function revokeDoctor(admin: SupabaseClient, id: string, reason: string): Promise<void> {
+  const { data, error } = await admin
+    .from("doctors")
+    .select("verification_status")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to look up doctor ${id}: ${error.message}`);
+  }
+  if (data.verification_status !== "verified") {
+    throw new Error(
+      `Doctor ${id} is not currently verified (status: ${data.verification_status}) — nothing to revoke.`,
+    );
+  }
+
+  await rejectDoctor(admin, id, reason);
+}
+
 export async function getDoctorCertificateSignedUrl(
   admin: SupabaseClient,
   id: string,

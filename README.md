@@ -60,7 +60,7 @@ instead.
   synthesis with enforced citations, used by both `/ask` and the CLI: `npm run query`
 - `lib/doctors/` — signup (`/verify` + `/verify/certificate`), phone/OTP validation, and the
   founder review CLI: `npm run doctors:list` / `doctors:approve` / `doctors:reject` /
-  `doctors:cert-url`
+  `doctors:cert-url` / `doctors:revoke`
 - `lib/email/` — OTP email sending via Resend
 - `supabase/migrations/` — schema, RLS (including the `authenticated`-role policies added for
   doctor login), `match_documents` RPC, doctor-certificates + OTP tables and storage bucket

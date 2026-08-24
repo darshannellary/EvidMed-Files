@@ -3,10 +3,16 @@ import {
   listPendingDoctors,
   approveDoctor,
   rejectDoctor,
+  revokeDoctor,
   getDoctorCertificateSignedUrl,
 } from "./review";
 
 const SIGNED_URL_EXPIRES_SECONDS = 600; // 10 minutes
+
+const USAGE =
+  'Usage: npm run doctors:list | npm run doctors:approve -- --id=<uuid> | ' +
+  'npm run doctors:reject -- --id=<uuid> [--reason="..."] | npm run doctors:cert-url -- --id=<uuid> | ' +
+  'npm run doctors:revoke -- --id=<uuid> --reason="..."';
 
 function parseFlags(argv: string[]) {
   const flags: Record<string, string> = {};
@@ -27,11 +33,13 @@ async function main() {
   // by "NEXT_PUBLIC_SUPABASE_URL is not set."
   if (subcommand === "approve" || subcommand === "reject" || subcommand === "cert-url") {
     requireId(flags);
+  } else if (subcommand === "revoke") {
+    requireId(flags);
+    if (!flags.reason) {
+      throw new Error('Missing --reason="..." — revoke requires an explicit reason.');
+    }
   } else if (subcommand !== "list") {
-    throw new Error(
-      'Usage: npm run doctors:list | npm run doctors:approve -- --id=<uuid> | ' +
-        'npm run doctors:reject -- --id=<uuid> [--reason="..."] | npm run doctors:cert-url -- --id=<uuid>',
-    );
+    throw new Error(USAGE);
   }
 
   const admin = createAdminClient();
@@ -78,11 +86,15 @@ async function main() {
       return;
     }
 
+    case "revoke": {
+      requireId(flags);
+      await revokeDoctor(admin, flags.id, flags.reason);
+      console.log(`Revoked doctor ${flags.id} (reason: ${flags.reason}).`);
+      return;
+    }
+
     default:
-      throw new Error(
-        'Usage: npm run doctors:list | npm run doctors:approve -- --id=<uuid> | ' +
-          'npm run doctors:reject -- --id=<uuid> [--reason="..."] | npm run doctors:cert-url -- --id=<uuid>',
-      );
+      throw new Error(USAGE);
   }
 }
 

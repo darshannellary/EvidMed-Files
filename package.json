@@ -15,7 +15,8 @@
     "doctors:list": "tsx --env-file=.env.local lib/doctors/cli.ts list",
     "doctors:approve": "tsx --env-file=.env.local lib/doctors/cli.ts approve",
     "doctors:reject": "tsx --env-file=.env.local lib/doctors/cli.ts reject",
-    "doctors:cert-url": "tsx --env-file=.env.local lib/doctors/cli.ts cert-url"
+    "doctors:cert-url": "tsx --env-file=.env.local lib/doctors/cli.ts cert-url",
+    "doctors:revoke": "tsx --env-file=.env.local lib/doctors/cli.ts revoke"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
