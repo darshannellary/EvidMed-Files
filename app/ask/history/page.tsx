@@ -36,13 +36,11 @@ export default async function AskHistoryPage() {
           Log out
         </button>
       </form>
+      <Link href="/ask" className={styles.navLink}>
+        ← Ask a new question
+      </Link>
       <div className={styles.card}>
-        <div className={styles.topLinks}>
-          <h1 className={styles.heading}>Question History</h1>
-          <Link href="/ask" className={styles.navLink}>
-            ← Ask a new question
-          </Link>
-        </div>
+        <h1 className={styles.heading}>Question History</h1>
         <p className={styles.description}>Your past clinical research questions and answers.</p>
 
         {entries.length === 0 ? (

@@ -72,13 +72,11 @@ export default async function AskPage() {
   return (
     <main className={styles.page}>
       <LogoutButton />
+      <Link href="/ask/history" className={styles.navLink}>
+        Recent History
+      </Link>
       <div className={styles.card}>
-        <div className={styles.topLinks}>
-          <h1 className={styles.heading}>Ask EvidMed AI</h1>
-          <Link href="/ask/history" className={styles.navLink}>
-            Recent History
-          </Link>
-        </div>
+        <h1 className={styles.heading}>Ask EvidMed AI</h1>
         <p className={styles.description}>
           Ask a clinical research question. Answers are grounded first in Indian medical guidance
           (ICMR, NHM, NCDC), with every claim carrying an inline citation.

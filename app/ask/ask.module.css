@@ -123,14 +123,11 @@
   opacity: 0.85;
 }
 
-.topLinks {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
 .navLink {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--accent);
