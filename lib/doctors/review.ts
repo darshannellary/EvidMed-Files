@@ -2,8 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PendingDoctor } from "./types";
 import { getCertificateSignedUrl } from "./storage";
 import { sendApprovalEmail, ApprovalEmailSendError } from "@/lib/email/send-approval";
+import { sendRejectionEmail, RejectionEmailSendError } from "@/lib/email/send-rejection";
 
-export interface ApproveDoctorResult {
+export interface EmailNotificationResult {
   emailSent: boolean;
   emailError?: string;
 }
@@ -25,7 +26,7 @@ export async function listPendingDoctors(admin: SupabaseClient): Promise<Pending
   return (data ?? []) as PendingDoctor[];
 }
 
-export async function approveDoctor(admin: SupabaseClient, id: string): Promise<ApproveDoctorResult> {
+export async function approveDoctor(admin: SupabaseClient, id: string): Promise<EmailNotificationResult> {
   const { data, error } = await admin
     .from("doctors")
     .update({ verification_status: "verified", verification_method: "manual" })
@@ -58,18 +59,36 @@ export async function rejectDoctor(
   admin: SupabaseClient,
   id: string,
   reason?: string,
-): Promise<void> {
-  const { error } = await admin
+): Promise<EmailNotificationResult> {
+  const { data, error } = await admin
     .from("doctors")
     .update({
       verification_status: "rejected",
       verification_method: "manual",
       rejection_reason: reason ?? null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("name, contact_email")
+    .single();
 
   if (error) {
     throw new Error(`Failed to reject doctor ${id}: ${error.message}`);
+  }
+
+  const { name, contact_email: contactEmail } = data as { name: string; contact_email: string | null };
+
+  if (!contactEmail) {
+    return { emailSent: false, emailError: "no contact email on file" };
+  }
+
+  // The doctor is already rejected in the DB by this point — an email failure here is a
+  // best-effort notification failing, not a reason to fail the rejection itself.
+  try {
+    await sendRejectionEmail(contactEmail, name, reason ?? null);
+    return { emailSent: true };
+  } catch (err) {
+    const message = err instanceof RejectionEmailSendError ? err.message : "unknown error";
+    return { emailSent: false, emailError: message };
   }
 }
 

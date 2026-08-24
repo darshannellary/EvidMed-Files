@@ -74,8 +74,13 @@ async function main() {
 
     case "reject": {
       requireId(flags);
-      await rejectDoctor(admin, flags.id, flags.reason);
+      const result = await rejectDoctor(admin, flags.id, flags.reason);
       console.log(`Rejected doctor ${flags.id}${flags.reason ? ` (reason: ${flags.reason})` : ""}.`);
+      if (result.emailSent) {
+        console.log("Rejection email sent.");
+      } else {
+        console.warn(`Rejection email NOT sent: ${result.emailError}`);
+      }
       return;
     }
 
