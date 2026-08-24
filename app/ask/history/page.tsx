@@ -37,7 +37,7 @@ export default async function AskHistoryPage() {
         </button>
       </form>
       <Link href="/ask" className={styles.navLink}>
-        ← Ask a new question
+        Ask a new question
       </Link>
       <div className={styles.card}>
         <h1 className={styles.heading}>Question History</h1>
