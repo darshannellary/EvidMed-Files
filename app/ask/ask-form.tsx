@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { askAction, type AskFormState } from "./actions";
-import styles from "../verify/verify.module.css";
+import styles from "./ask.module.css";
 
 const INITIAL_STATE: AskFormState = {};
 

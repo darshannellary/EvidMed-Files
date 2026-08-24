@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getAuthedDoctor } from "@/lib/auth/session";
 import { AskForm } from "./ask-form";
 import { logoutAction } from "./actions";
-import styles from "../verify/verify.module.css";
+import styles from "./ask.module.css";
 
 function LogoutButton() {
   return (

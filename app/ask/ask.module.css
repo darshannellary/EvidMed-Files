@@ -1,0 +1,124 @@
+.page {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+}
+
+.card {
+  width: 100%;
+  /* Deliberately much wider than verify.module.css's 480px shared card — this page shows a
+     multi-line question and a long, multi-paragraph cited answer, not a short signup form, so a
+     narrow column hurts readability instead of helping it. */
+  max-width: 820px;
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 2.5rem;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin-top: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.form {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.hint {
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--input-focus-border);
+}
+
+.submitButton {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--accent-foreground);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorBox {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--error-foreground);
+  background: var(--error-background);
+  border: 1px solid var(--error-border);
+  border-radius: 8px;
+}
+
+.logoutButton {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: #fff;
+  background: #000;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.logoutButton:hover {
+  opacity: 0.85;
+}
