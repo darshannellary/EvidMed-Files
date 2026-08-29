@@ -9,6 +9,7 @@ export interface AskFormState {
   error?: string;
   responseText?: string;
   citationCount?: number;
+  sources?: { title: string; source: string; tier: 1 | 2 }[];
 }
 
 export async function askAction(
@@ -28,11 +29,11 @@ export async function askAction(
   }
 
   try {
-    const { responseText, citationCount } = await answerQuery({
+    const { responseText, citationCount, sources } = await answerQuery({
       doctorId: result.doctor.id,
       queryText,
     });
-    return { responseText, citationCount };
+    return { responseText, citationCount, sources };
   } catch (err) {
     console.error("[ask] query failed:", err);
     return { error: "Something went wrong answering your question. Please try again." };

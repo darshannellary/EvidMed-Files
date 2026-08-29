@@ -4,6 +4,7 @@ import { retrieveDocuments } from "./retrieve";
 import { synthesizeAnswer } from "./synthesize";
 import { insertQuery, completeQuery, insertCitations } from "./persist";
 import { NO_ANSWER_SENTINEL } from "./validate";
+import type { CitedSource } from "./types";
 
 // Claude's internal "nothing to cite" signal (see validate.ts) is a machine-checkable marker, not
 // user-facing copy — shown raw, a doctor would see the literal string "NO_RELEVANT_SOURCES"
@@ -21,6 +22,7 @@ export interface AnswerQueryResult {
   responseText: string;
   responseTimeMs: number;
   citationCount: number;
+  sources: CitedSource[];
 }
 
 export async function answerQuery(args: AnswerQueryArgs): Promise<AnswerQueryResult> {
@@ -61,5 +63,23 @@ export async function answerQuery(args: AnswerQueryArgs): Promise<AnswerQueryRes
   await completeQuery(admin, queryId, { responseText, responseTimeMs });
   await insertCitations(admin, queryId, citations);
 
-  return { queryId, responseText, responseTimeMs, citationCount: citations.length };
+  // Derived from the same in-memory chunks/citations already computed above, not a second DB
+  // round-trip — mirrors the dedup-by-document logic lib/rag/history.ts uses for the same purpose.
+  const chunkById = new Map(chunks.map((c) => [c.chunk_id, c]));
+  const seen = new Set<string>();
+  const sources: CitedSource[] = [];
+  for (const citation of citations) {
+    if (seen.has(citation.documentId)) continue;
+    const chunk = chunkById.get(citation.chunkId);
+    if (!chunk) continue; // defensive only — every citation's chunkId is derived from `chunks` itself
+    seen.add(citation.documentId);
+    sources.push({
+      documentId: citation.documentId,
+      title: chunk.title,
+      source: chunk.source,
+      tier: chunk.tier,
+    });
+  }
+
+  return { queryId, responseText, responseTimeMs, citationCount: citations.length, sources };
 }

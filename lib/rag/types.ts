@@ -25,3 +25,10 @@ export interface SynthesisResult {
   responseText: string;
   citations: { documentId: string; chunkId: string; claimText: string }[];
 }
+
+export interface CitedSource {
+  documentId: string;
+  title: string;
+  source: string;
+  tier: 1 | 2;
+}

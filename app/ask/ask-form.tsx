@@ -6,6 +6,13 @@ import styles from "./ask.module.css";
 
 const INITIAL_STATE: AskFormState = {};
 
+// Same formatting as app/ask/history/page.tsx's formatSources — small enough, and this codebase
+// already tolerates tiny per-route duplication like this (see clientIp() in
+// verify/actions.ts and forgot-password/actions.ts) rather than a shared module for one line.
+function formatSources(sources: { title: string; tier: 1 | 2 }[]): string {
+  return sources.map((s) => `${s.title} (Tier ${s.tier})`).join(", ");
+}
+
 export function AskForm() {
   const [state, formAction, isPending] = useActionState(askAction, INITIAL_STATE);
 
@@ -85,6 +92,9 @@ export function AskForm() {
           <p className={styles.hint} style={{ marginTop: "0.75rem" }}>
             {state.citationCount} citation{state.citationCount === 1 ? "" : "s"} recorded
           </p>
+          {state.sources && state.sources.length > 0 && (
+            <p className={styles.sourcesLine}>Sources: {formatSources(state.sources)}</p>
+          )}
         </div>
       )}
     </div>
