@@ -41,7 +41,10 @@ export interface MedRxivMetadata {
  * itself failed (network/HTTP), not that the lookup came back empty.
  */
 export async function fetchMedRxivMetadata(doi: string): Promise<MedRxivMetadata | null> {
-  const url = `${DETAILS_URL}/${encodeURIComponent(doi)}/na/json`;
+  // Not encodeURIComponent(doi): a DOI's "/" is a path separator the API expects literally
+  // (10.1101/2020.01.01.20016949 -> .../details/medrxiv/10.1101/2020.01.01.20016949/na/json).
+  // Encoding it to %2F makes the API 404 rather than return an empty collection.
+  const url = `${DETAILS_URL}/${doi}/na/json`;
   const response = await fetch(url);
 
   if (!response.ok) {
