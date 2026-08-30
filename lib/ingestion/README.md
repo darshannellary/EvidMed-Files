@@ -1,14 +1,15 @@
 # Document Ingestion Pipeline
 
-Two ways to get a document in: a manual PDF (any Tier-1 or Tier-2 source) or an automated pull
-from PubMed/PMC (Tier-2 `PubMedCentral` only). Both extract text, split it into paragraph-aware
-chunks (`lib/ingestion/chunk.ts`), embed each chunk via Voyage AI (`voyage-3-large`, 1024 dims),
-and insert the document into `documents` and its chunks (with per-chunk embeddings) into
-`document_chunks`, using the service-role admin client (RLS has no anon/authenticated write
-policies, so this is the only write path — see `supabase/migrations/20260818090100_enable_rls.sql`
-and `20260821130000_document_chunks_schema.sql`). The chunk→embed→insert steps are shared code
+Three ways to get a document in: a manual PDF (any Tier-1 or Tier-2 source), an automated pull from
+PubMed/PMC (Tier-2 `PubMedCentral` only), or an automated pull from medRxiv (Tier-2 `medRxiv` only).
+All three extract text, split it into paragraph-aware chunks (`lib/ingestion/chunk.ts`), embed each
+chunk via Voyage AI (`voyage-3-large`, 1024 dims), and insert the document into `documents` and its
+chunks (with per-chunk embeddings) into `document_chunks`, using the service-role admin client (RLS
+has no anon/authenticated write policies, so this is the only write path — see
+`supabase/migrations/20260818090100_enable_rls.sql` and
+`20260821130000_document_chunks_schema.sql`). The chunk→embed→insert steps are shared code
 (`ingestExtractedText` in `lib/ingestion/pipeline.ts`) — only how the raw text gets extracted
-differs between the two paths.
+differs between the three paths.
 
 ## Usage: manual PDF
 
@@ -64,6 +65,40 @@ a clear "already ingested as document {id}" error, not a silent duplicate.
 are built from their documented formats, not verified against a live call** — no real
 `NCBI_API_EMAIL`/network access exists in this session's sandbox. Treat the first real
 `pubmed:search`/`pubmed:ingest` run as the actual verification of these assumptions.
+
+## Usage: medRxiv (Tier 2 only)
+
+One-step, founder-curated workflow — **no `medrxiv:search` CLI exists**, unlike PubMed. Unlike
+NCBI's E-utilities, medRxiv's public API (`api.medrxiv.org`) has no keyword search endpoint at
+all — only a single-DOI lookup or date-range browsing. Find a candidate preprint via medrxiv.org's
+own website search in a browser (the same workflow already used for sourcing ICMR/NHM PDFs), copy
+its DOI from the article URL (the part after `content/`, before `v1` — e.g. a URL like
+`medrxiv.org/content/10.1101/2024.01.01.24300000v1` has DOI `10.1101/2024.01.01.24300000`), then:
+
+```bash
+npm run medrxiv:ingest -- --doi=10.1101/2024.01.01.24300000 [--title="Override title"]
+```
+
+If `--title` is omitted, the preprint's real title (from medRxiv's own metadata) is used.
+
+**License-gated, not just availability-gated.** Unlike PMC's binary "in the Open Access Subset or
+not," medRxiv authors choose their own reuse license on submission (CC-BY, CC-BY-NC, CC-BY-ND,
+CC-BY-NC-ND, CC0, or no reuse at all). Only **CC-BY and CC0** unambiguously permit reuse in a
+commercial product — `medrxiv:ingest` refuses anything else, including a license string it doesn't
+recognize, and says exactly what license was found rather than assuming "posted on medRxiv" means
+"freely reusable."
+
+No env vars required beyond the ones every ingest path already needs — medRxiv's API expects no
+contact-email/API-key identification, unlike NCBI's usage policy for PubMed/PMC.
+
+Same dedup behavior as PubMed: documents ingested this way get `external_id` (the DOI) and
+`source_url` (the canonical medRxiv article link) populated; re-running `medrxiv:ingest` on an
+already-ingested DOI is rejected with a clear "already ingested as document {id}" error.
+
+**Response shape for medRxiv's details API (`lib/ingestion/medrxiv.ts`) is built from its
+documented format, not verified against a live call** — no network access exists in this session's
+sandbox. Treat the first real `medrxiv:ingest` run as the actual verification, same as every other
+external-API assumption in this codebase.
 
 ## Chunking
 

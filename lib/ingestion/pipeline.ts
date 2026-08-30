@@ -11,6 +11,7 @@ import {
   type ChunkInsertPayload,
 } from "./insert";
 import { convertPmidToPmcid, fetchPmcFullText, searchPubMed } from "./pubmed";
+import { fetchMedRxivMetadata, fetchMedRxivPdf, isPermissiveLicense } from "./medrxiv";
 import { assertSourceTierMatch, type DocumentSource, type DocumentTier } from "./types";
 
 // Embedding batch size for Voyage calls — a placeholder, not verified against Voyage's actual
@@ -163,6 +164,67 @@ export async function ingestFromPubMed(
   });
 
   return { id, chunkCount, pmcid };
+}
+
+export interface IngestFromMedRxivArgs {
+  doi: string;
+  title?: string;
+}
+
+/**
+ * Licensed-only, no exceptions: medRxiv authors choose their own reuse license on submission, and
+ * only CC-BY/CC0 unambiguously permit use in a commercial product. Anything else — including a
+ * license string this client doesn't recognize — is refused, not silently ingested on the
+ * assumption that "on medRxiv" implies "freely reusable" the way it might for a PMC OA article.
+ */
+export async function ingestFromMedRxiv(
+  args: IngestFromMedRxivArgs,
+): Promise<{ id: string; chunkCount: number; license: string }> {
+  const { doi } = args;
+  const admin = createAdminClient();
+
+  const { data: existing, error: existingError } = await admin
+    .from("documents")
+    .select("id")
+    .eq("source", "medRxiv")
+    .eq("external_id", doi)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Failed to check for an existing document: ${existingError.message}`);
+  }
+  if (existing) {
+    throw new Error(`DOI ${doi} was already ingested as document ${existing.id}.`);
+  }
+
+  const metadata = await fetchMedRxivMetadata(doi);
+  if (!metadata) {
+    throw new Error(`No medRxiv record found for DOI ${doi}.`);
+  }
+  if (!isPermissiveLicense(metadata.license)) {
+    throw new Error(
+      `DOI ${doi} is licensed "${metadata.license}", not CC-BY or CC0 — refusing to ingest into ` +
+        "a commercial product without explicit permission from the author.",
+    );
+  }
+
+  const pdfBuffer = await fetchMedRxivPdf(metadata.doi, metadata.version);
+  const { text, warnings } = await extractTextFromPdf(pdfBuffer);
+  for (const warning of warnings) {
+    console.warn(`[medrxiv-ingest] ${doi}: ${warning}`);
+  }
+
+  const title = args.title ?? metadata.title;
+  const { id, chunkCount } = await ingestExtractedText(admin, {
+    source: "medRxiv",
+    tier: 2,
+    title,
+    text,
+    externalId: doi,
+    sourceUrl: `https://www.medrxiv.org/content/${metadata.doi}v${metadata.version}`,
+  });
+
+  return { id, chunkCount, license: metadata.license };
 }
 
 export async function backfillEmbeddings(admin: SupabaseClient = createAdminClient()) {
