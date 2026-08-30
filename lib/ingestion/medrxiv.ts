@@ -20,6 +20,13 @@
 
 const DETAILS_URL = "https://api.medrxiv.org/details/medrxiv";
 
+// api.medrxiv.org's legacy details endpoint only indexes the classic 10.1101 (shared with
+// bioRxiv) prefix. Since medRxiv's 2023-2024 restructuring under openRxiv, newly posted preprints
+// are minted under 10.64898, which that endpoint doesn't recognize at all — a request for one
+// isn't even parsed as a DOI lookup, it falls through to date-range parsing and comes back with an
+// empty collection (confirmed live). Crossref indexes both prefixes, so it's the fallback.
+const CROSSREF_URL = "https://api.crossref.org/works";
+
 // Case-insensitive match against the API's documented `license` values (e.g. "cc_by"). Everything
 // else — cc_by_nc, cc_by_nd, cc_by_nc_nd, "no reuse", or an unrecognized/missing value — is
 // treated as non-permissive, the safe default for a commercial product.
@@ -36,9 +43,64 @@ export interface MedRxivMetadata {
 }
 
 /**
+ * Maps a Crossref license URL (e.g. "http://creativecommons.org/licenses/by/4.0/") to the same
+ * license codes api.medrxiv.org's own details endpoint uses ("cc_by", "cc_by_nc", ...), so
+ * isPermissiveLicense() works identically regardless of which source the metadata came from.
+ * Unrecognized URLs pass through unchanged — isPermissiveLicense() then correctly treats them as
+ * non-permissive rather than silently matching.
+ */
+function licenseCodeFromCrossrefUrl(url: string): string {
+  const match = url.match(/creativecommons\.org\/(licenses\/([a-z-]+)|(zero))\/[\d.]+/i);
+  if (!match) return url;
+  if (match[3]) return "cc0";
+  return `cc_${match[2].replace(/-/g, "_")}`;
+}
+
+/**
+ * Fallback for DOIs api.medrxiv.org's details endpoint doesn't recognize (see CROSSREF_URL
+ * comment). Crossref's schema has no explicit preprint version field the way medRxiv's own API
+ * does; every medRxiv DOI's first (and typically only) posted version is v1, so that's the
+ * default here — confirmed against this DOI's own reference-list keys (suffixed "v1.N").
+ */
+async function fetchMedRxivMetadataFromCrossref(doi: string): Promise<MedRxivMetadata | null> {
+  const response = await fetch(`${CROSSREF_URL}/${doi}`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new MedRxivApiError(`Crossref request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const json = (await response.json()) as {
+    message?: {
+      title?: string[];
+      license?: Array<{ URL?: string }>;
+      posted?: { "date-parts"?: number[][] };
+      institution?: Array<{ name?: string }>;
+    };
+  };
+  const message = json.message;
+  // Crossref indexes preprints from many servers under many prefixes — confirm this one is
+  // actually medRxiv's before trusting it as a medRxiv record.
+  if (!message || !message.institution?.some((i) => i.name === "medRxiv")) return null;
+
+  const licenseUrl = message.license?.[0]?.URL;
+  const dateParts = message.posted?.["date-parts"]?.[0];
+  const date = dateParts
+    ? dateParts.map((n) => String(n).padStart(2, "0")).join("-")
+    : "(unknown date)";
+
+  return {
+    doi,
+    title: message.title?.[0] ?? `medRxiv ${doi}`,
+    version: "1",
+    license: licenseUrl ? licenseCodeFromCrossrefUrl(licenseUrl) : "unknown",
+    date,
+  };
+}
+
+/**
  * Looks up a single medRxiv preprint by DOI. Returns null if the DOI has no medRxiv record
- * (typo, or not a medRxiv DOI at all) — distinct from MedRxivApiError, which means the request
- * itself failed (network/HTTP), not that the lookup came back empty.
+ * anywhere (typo, or not a medRxiv DOI at all) — distinct from MedRxivApiError, which means a
+ * request itself failed (network/HTTP), not that the lookup came back empty.
  */
 export async function fetchMedRxivMetadata(doi: string): Promise<MedRxivMetadata | null> {
   // Not encodeURIComponent(doi): a DOI's "/" is a path separator the API expects literally
@@ -57,15 +119,17 @@ export async function fetchMedRxivMetadata(doi: string): Promise<MedRxivMetadata
     collection?: Array<{ doi?: string; title?: string; version?: string; license?: string; date?: string }>;
   };
   const entry = json.collection?.[0];
-  if (!entry || !entry.doi) return null;
+  if (entry && entry.doi) {
+    return {
+      doi: entry.doi,
+      title: entry.title ?? `medRxiv ${doi}`,
+      version: entry.version ?? "1",
+      license: entry.license ?? "unknown",
+      date: entry.date ?? "(unknown date)",
+    };
+  }
 
-  return {
-    doi: entry.doi,
-    title: entry.title ?? `medRxiv ${doi}`,
-    version: entry.version ?? "1",
-    license: entry.license ?? "unknown",
-    date: entry.date ?? "(unknown date)",
-  };
+  return fetchMedRxivMetadataFromCrossref(doi);
 }
 
 export function isPermissiveLicense(license: string): boolean {

@@ -95,10 +95,16 @@ Same dedup behavior as PubMed: documents ingested this way get `external_id` (th
 `source_url` (the canonical medRxiv article link) populated; re-running `medrxiv:ingest` on an
 already-ingested DOI is rejected with a clear "already ingested as document {id}" error.
 
-**Response shape for medRxiv's details API (`lib/ingestion/medrxiv.ts`) is built from its
-documented format, not verified against a live call** — no network access exists in this session's
-sandbox. Treat the first real `medrxiv:ingest` run as the actual verification, same as every other
-external-API assumption in this codebase.
+**Two prefixes, one fallback.** api.medrxiv.org's own details endpoint only indexes the classic
+`10.1101` prefix (shared with bioRxiv). Since medRxiv's 2023-2024 restructuring under openRxiv,
+newly posted preprints are minted under `10.64898`, which that endpoint doesn't recognize — live-
+verified against a real `10.64898` DOI, where it silently falls through to date-range parsing
+instead of a DOI lookup. `fetchMedRxivMetadata` falls back to the Crossref API
+(`api.crossref.org/works/{doi}`, confirmed via live call to index both prefixes) whenever
+api.medrxiv.org's own endpoint comes back empty, so both prefixes work through the same
+`medrxiv:ingest` command. Crossref's schema has no explicit preprint-version field the way
+medRxiv's own API does, so the fallback path assumes `v1` — true for every DOI checked so far, and
+consistent with Crossref's own reference-list keys (suffixed `v1.N`) for those records.
 
 ## Chunking
 
