@@ -34,8 +34,24 @@ export function assertSourceTierMatch(source: DocumentSource, tier: DocumentTier
   }
 }
 
-export interface ExtractionResult {
+/**
+ * The unit chunking operates on. `page` is the 1-based PDF page the paragraph came from, or null
+ * when the source has no page concept at all (PMC BioC full text is a flat passage stream, not a
+ * paginated document). `section` is a best-effort structural label — populated only where it's
+ * derived from real structure (PMC's BioC `section_type`, see lib/ingestion/pubmed.ts), never
+ * guessed from prose heuristics. A PDF-derived paragraph always has section: null — plain
+ * extracted PDF text carries no reliable heading markup to detect a section from, and a wrong
+ * guess would misrepresent where a claim sits in a clinical guideline, which is worse than no
+ * label at all.
+ */
+export interface ExtractedParagraph {
   text: string;
-  pageCount: number;
+  page: number | null;
+  section: string | null;
+}
+
+export interface ExtractionResult {
+  paragraphs: ExtractedParagraph[];
+  pageCount: number | null;
   warnings: string[];
 }

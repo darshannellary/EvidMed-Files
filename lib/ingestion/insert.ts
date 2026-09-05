@@ -38,6 +38,9 @@ export interface ChunkInsertPayload {
   chunkIndex: number;
   chunkText: string;
   embedding: number[] | null;
+  pageStart: number | null;
+  pageEnd: number | null;
+  section: string | null;
 }
 
 export async function insertDocumentChunks(
@@ -53,6 +56,9 @@ export async function insertDocumentChunks(
       chunk_index: c.chunkIndex,
       chunk_text: c.chunkText,
       embedding: c.embedding,
+      page_start: c.pageStart,
+      page_end: c.pageEnd,
+      section: c.section,
     })),
   );
 

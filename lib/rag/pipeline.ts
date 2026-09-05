@@ -64,20 +64,31 @@ export async function answerQuery(args: AnswerQueryArgs): Promise<AnswerQueryRes
   await insertCitations(admin, queryId, citations);
 
   // Derived from the same in-memory chunks/citations already computed above, not a second DB
-  // round-trip — mirrors the dedup-by-document logic lib/rag/history.ts uses for the same purpose.
+  // round-trip — mirrors the dedup-by-chunk logic lib/rag/history.ts uses for the same purpose.
+  //
+  // Deduped by chunkId, not documentId: retrieve.ts's own docs note that two different chunks of
+  // the same document can legitimately both get cited (two sections of one guideline, each
+  // answering a different facet of the question). validateCitations already guarantees at most one
+  // citation row per unique chunk, so deduping here on documentId alone would silently collapse
+  // those into a single source line and show only one arbitrary page/section per document — the
+  // opposite of what page/section citations are for.
   const chunkById = new Map(chunks.map((c) => [c.chunk_id, c]));
   const seen = new Set<string>();
   const sources: CitedSource[] = [];
   for (const citation of citations) {
-    if (seen.has(citation.documentId)) continue;
+    if (seen.has(citation.chunkId)) continue;
     const chunk = chunkById.get(citation.chunkId);
     if (!chunk) continue; // defensive only — every citation's chunkId is derived from `chunks` itself
-    seen.add(citation.documentId);
+    seen.add(citation.chunkId);
     sources.push({
       documentId: citation.documentId,
+      chunkId: citation.chunkId,
       title: chunk.title,
       source: chunk.source,
       tier: chunk.tier,
+      pageStart: chunk.page_start,
+      pageEnd: chunk.page_end,
+      section: chunk.section,
     });
   }
 

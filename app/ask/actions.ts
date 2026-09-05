@@ -9,7 +9,14 @@ export interface AskFormState {
   error?: string;
   responseText?: string;
   citationCount?: number;
-  sources?: { title: string; source: string; tier: 1 | 2 }[];
+  sources?: {
+    title: string;
+    source: string;
+    tier: 1 | 2;
+    pageStart: number | null;
+    pageEnd: number | null;
+    section: string | null;
+  }[];
 }
 
 export async function askAction(

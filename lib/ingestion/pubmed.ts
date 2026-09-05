@@ -7,6 +7,29 @@
 // real exercise of this integration, same honesty this codebase already applies to
 // lib/ingestion/embed.ts's Voyage response-shape assumptions.
 
+import type { ExtractedParagraph } from "./types";
+
+// BioC's `section_type` infon is a coarse, fixed vocabulary (see PMC's BioC documentation) — not
+// an article-specific heading like "Statistical Analysis," but still real structure straight from
+// PMC's own markup, unlike anything derivable from a plain-text PDF. Only mapped values are ever
+// used as a citation's `section`; an unrecognized or absent section_type yields null rather than
+// showing the raw enum string (e.g. "SUPPL_LEG") to a doctor.
+const BIOC_SECTION_LABELS: Record<string, string> = {
+  TITLE: "Title",
+  ABSTRACT: "Abstract",
+  INTRO: "Introduction",
+  METHODS: "Methods",
+  RESULTS: "Results",
+  DISCUSS: "Discussion",
+  CONCL: "Conclusion",
+  CASE: "Case Report",
+  REF: "References",
+  SUPPL: "Supplementary Material",
+  COMP_INT: "Competing Interests",
+  AUTH_CONT: "Author Contributions",
+  ACK_FUND: "Acknowledgments/Funding",
+};
+
 const ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
 const ESUMMARY_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
 const IDCONV_URL = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles";
@@ -115,10 +138,15 @@ export async function convertPmidToPmcid(pmid: string): Promise<string | null> {
  * a failed or empty response IS the "not in the OA subset" signal, not a separate status check.
  * Returns null in that case (expected, not an error); throws PubMedApiError only on a genuine
  * network/HTTP failure.
+ *
+ * Each BioC passage becomes one paragraph directly — no re-joining into one blob and re-splitting
+ * on blank lines the way the PDF path has to, since BioC already hands back real, pre-segmented
+ * units. PMC full text has no page concept (page is always null here); section comes from each
+ * passage's own `infons.section_type` where BioC provides one recognized (see BIOC_SECTION_LABELS).
  */
 export async function fetchPmcFullText(
   pmcid: string,
-): Promise<{ text: string; warnings: string[] } | null> {
+): Promise<{ paragraphs: ExtractedParagraph[]; warnings: string[] } | null> {
   const url = `${BIOC_PMC_URL}/BioC_json/${pmcid}/unicode`;
   const response = await fetch(url);
 
@@ -133,7 +161,11 @@ export async function fetchPmcFullText(
   // 404/400 — when the article isn't in the Open Access subset. That's the same "not available"
   // signal as the 404/400 case above, just delivered with a 200 status.
   const rawBody = await response.text();
-  let json: Array<{ documents?: Array<{ passages?: Array<{ text?: string }> }> }>;
+  let json: Array<{
+    documents?: Array<{
+      passages?: Array<{ text?: string; infons?: Record<string, string> }>;
+    }>;
+  }>;
   try {
     json = JSON.parse(rawBody);
   } catch {
@@ -144,14 +176,24 @@ export async function fetchPmcFullText(
   // version of this code read `json.documents` directly and always got undefined, silently
   // treating every real Open Access article as "not available."
   const passages = json[0]?.documents?.[0]?.passages ?? [];
-  const texts = passages.map((p) => p.text?.trim()).filter((t): t is string => !!t);
+  const paragraphs: ExtractedParagraph[] = passages
+    .map((p) => ({ text: p.text?.trim() ?? "", infons: p.infons }))
+    .filter((p) => p.text.length > 0)
+    .map((p) => {
+      const sectionType = p.infons?.section_type;
+      return {
+        text: p.text,
+        page: null,
+        section: (sectionType && BIOC_SECTION_LABELS[sectionType]) ?? null,
+      };
+    });
 
-  if (texts.length === 0) return null;
+  if (paragraphs.length === 0) return null;
 
   const warnings: string[] = [];
-  if (texts.length < 5) {
-    warnings.push(`Only ${texts.length} passage(s) returned — full text may be incomplete.`);
+  if (paragraphs.length < 5) {
+    warnings.push(`Only ${paragraphs.length} passage(s) returned — full text may be incomplete.`);
   }
 
-  return { text: texts.join("\n\n"), warnings };
+  return { paragraphs, warnings };
 }

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { extractTextFromPdf } from "./extract";
-import { chunkText } from "./chunk";
+import { chunkParagraphs } from "./chunk";
 import { embedTexts } from "./embed";
 import {
   insertDocument,
@@ -12,7 +12,12 @@ import {
 } from "./insert";
 import { convertPmidToPmcid, fetchPmcFullText, searchPubMed } from "./pubmed";
 import { fetchMedRxivMetadata, fetchMedRxivPdf, isPermissiveLicense } from "./medrxiv";
-import { assertSourceTierMatch, type DocumentSource, type DocumentTier } from "./types";
+import {
+  assertSourceTierMatch,
+  type DocumentSource,
+  type DocumentTier,
+  type ExtractedParagraph,
+} from "./types";
 
 // Embedding batch size for Voyage calls — a placeholder, not verified against Voyage's actual
 // current per-request text-array/token limits (no live network access to check from this
@@ -24,8 +29,8 @@ const EMBED_BATCH_SIZE = 32;
 
 /**
  * Shared by every ingestion entry point (PDF, PubMed, and any future source): chunk the already-
- * extracted text, embed each chunk in batches (two-phase nullable-embedding fallback per batch,
- * not per document), insert the parent document row and its chunks.
+ * extracted paragraphs, embed each chunk in batches (two-phase nullable-embedding fallback per
+ * batch, not per document), insert the parent document row and its chunks.
  */
 async function ingestExtractedText(
   admin: SupabaseClient,
@@ -33,14 +38,14 @@ async function ingestExtractedText(
     source: DocumentSource;
     tier: DocumentTier;
     title: string;
-    text: string;
+    paragraphs: ExtractedParagraph[];
     externalId?: string;
     sourceUrl?: string;
   },
 ): Promise<{ id: string; chunkCount: number }> {
-  const { source, tier, title, text, externalId, sourceUrl } = args;
+  const { source, tier, title, paragraphs, externalId, sourceUrl } = args;
 
-  const chunks = chunkText(text);
+  const chunks = chunkParagraphs(paragraphs);
   if (chunks.length === 0) {
     throw new Error(`"${title}": chunking produced zero chunks from extracted text`);
   }
@@ -52,7 +57,10 @@ async function ingestExtractedText(
     source,
     tier,
     title,
-    raw_text: text,
+    // Reconstructed from paragraphs, not a separately-tracked blob — raw_text has always been a
+    // flat reference copy of the source text, and chunking (not raw_text) is what citations are
+    // actually keyed against.
+    raw_text: paragraphs.map((p) => p.text).join("\n\n"),
     external_id: externalId,
     source_url: sourceUrl,
   });
@@ -61,9 +69,19 @@ async function ingestExtractedText(
   for (let i = 0; i < chunks.length; i += EMBED_BATCH_SIZE) {
     const batch = chunks.slice(i, i + EMBED_BATCH_SIZE);
     try {
-      const embeddings = await embedTexts(batch, "document");
-      batch.forEach((t, j) =>
-        payloads.push({ chunkIndex: i + j, chunkText: t, embedding: embeddings[j] }),
+      const embeddings = await embedTexts(
+        batch.map((c) => c.text),
+        "document",
+      );
+      batch.forEach((c, j) =>
+        payloads.push({
+          chunkIndex: i + j,
+          chunkText: c.text,
+          embedding: embeddings[j],
+          pageStart: c.pageStart,
+          pageEnd: c.pageEnd,
+          section: c.section,
+        }),
       );
     } catch (err) {
       // Two-phase fallback: store the chunks now, backfill embeddings later via
@@ -72,7 +90,16 @@ async function ingestExtractedText(
       console.error(
         `[ingest] "${title}": embedding batch [${i}-${i + batch.length}) failed, inserting with embedding=null: ${(err as Error).message}`,
       );
-      batch.forEach((t, j) => payloads.push({ chunkIndex: i + j, chunkText: t, embedding: null }));
+      batch.forEach((c, j) =>
+        payloads.push({
+          chunkIndex: i + j,
+          chunkText: c.text,
+          embedding: null,
+          pageStart: c.pageStart,
+          pageEnd: c.pageEnd,
+          section: c.section,
+        }),
+      );
     }
   }
 
@@ -95,13 +122,13 @@ export async function ingestDocument(
   assertSourceTierMatch(source, tier);
 
   const buffer = await readFile(filePath);
-  const { text, warnings } = await extractTextFromPdf(buffer);
+  const { paragraphs, warnings } = await extractTextFromPdf(buffer);
   for (const warning of warnings) {
     console.warn(`[ingest] ${filePath}: ${warning}`);
   }
 
   const admin = createAdminClient();
-  return ingestExtractedText(admin, { source, tier, title, text });
+  return ingestExtractedText(admin, { source, tier, title, paragraphs });
 }
 
 export interface IngestFromPubMedArgs {
@@ -158,7 +185,7 @@ export async function ingestFromPubMed(
     source: "PubMedCentral",
     tier: 2,
     title,
-    text: fullText.text,
+    paragraphs: fullText.paragraphs,
     externalId: pmid,
     sourceUrl: `https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/`,
   });
@@ -209,7 +236,7 @@ export async function ingestFromMedRxiv(
   }
 
   const pdfBuffer = await fetchMedRxivPdf(metadata.doi, metadata.version);
-  const { text, warnings } = await extractTextFromPdf(pdfBuffer);
+  const { paragraphs, warnings } = await extractTextFromPdf(pdfBuffer);
   for (const warning of warnings) {
     console.warn(`[medrxiv-ingest] ${doi}: ${warning}`);
   }
@@ -219,7 +246,7 @@ export async function ingestFromMedRxiv(
     source: "medRxiv",
     tier: 2,
     title,
-    text,
+    paragraphs,
     externalId: doi,
     sourceUrl: `https://www.medrxiv.org/content/${metadata.doi}v${metadata.version}`,
   });

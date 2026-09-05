@@ -6,6 +6,9 @@ export interface RetrievedChunk {
   source: string;
   tier: 1 | 2;
   title: string;
+  page_start: number | null;
+  page_end: number | null;
+  section: string | null;
   distance: number;
 }
 
@@ -28,7 +31,11 @@ export interface SynthesisResult {
 
 export interface CitedSource {
   documentId: string;
+  chunkId: string;
   title: string;
   source: string;
   tier: 1 | 2;
+  pageStart: number | null;
+  pageEnd: number | null;
+  section: string | null;
 }

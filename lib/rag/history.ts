@@ -1,10 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface QueryHistorySource {
-  id: string;
+  chunkId: string;
   title: string;
   source: string;
   tier: 1 | 2;
+  pageStart: number | null;
+  pageEnd: number | null;
+  section: string | null;
 }
 
 export interface QueryHistoryEntry {
@@ -25,7 +28,9 @@ interface QueryRow {
   response_time_ms: number | null;
   created_at: string;
   citations: Array<{
+    chunk_id: string | null;
     documents: { id: string; title: string; source: string; tier: number } | null;
+    document_chunks: { page_start: number | null; page_end: number | null; section: string | null } | null;
   }> | null;
 }
 
@@ -42,9 +47,12 @@ interface QueryRow {
  * "raw corpus access" that policy was written to prevent — it's strictly less exposure than the
  * synthesized answer text they were already given.
  *
- * Sources are deduplicated per query (by document id) rather than showing one line per citation
- * — a history list is for scanning past questions at a glance, not re-reading every claim, so a
- * compact "Sources: X, Y" line serves that better than repeating claim_text per citation.
+ * Sources are deduplicated per query (by chunk id, not document id) rather than showing one line
+ * per citation — a history list is for scanning past questions at a glance, not re-reading every
+ * claim, so a compact "Sources: X, Y" line serves that better than repeating claim_text per
+ * citation. Chunk id, not document id, because two different chunks of the same document (two
+ * pages/sections each answering a different facet of the question) are legitimately both cited —
+ * see lib/rag/pipeline.ts's answerQuery for the same dedup choice and its full rationale.
  */
 export async function listDoctorQueries(
   admin: SupabaseClient,
@@ -54,7 +62,7 @@ export async function listDoctorQueries(
     .from("queries")
     .select(
       `id, query_text, response_text, response_time_ms, created_at,
-       citations ( documents ( id, title, source, tier ) )`,
+       citations ( chunk_id, documents ( id, title, source, tier ), document_chunks ( page_start, page_end, section ) )`,
     )
     .eq("doctor_id", doctorId)
     .order("created_at", { ascending: false })
@@ -69,9 +77,20 @@ export async function listDoctorQueries(
     const sources: QueryHistorySource[] = [];
     for (const citation of row.citations ?? []) {
       const doc = citation.documents;
-      if (!doc || seen.has(doc.id)) continue;
-      seen.add(doc.id);
-      sources.push({ id: doc.id, title: doc.title, source: doc.source, tier: doc.tier as 1 | 2 });
+      // chunk_id is nullable on old, pre-chunking citation rows (see
+      // 20260821130000_document_chunks_schema.sql) — those have no page/section to show and are
+      // skipped here rather than shown with blank location fields.
+      if (!doc || !citation.chunk_id || seen.has(citation.chunk_id)) continue;
+      seen.add(citation.chunk_id);
+      sources.push({
+        chunkId: citation.chunk_id,
+        title: doc.title,
+        source: doc.source,
+        tier: doc.tier as 1 | 2,
+        pageStart: citation.document_chunks?.page_start ?? null,
+        pageEnd: citation.document_chunks?.page_end ?? null,
+        section: citation.document_chunks?.section ?? null,
+      });
     }
 
     return {

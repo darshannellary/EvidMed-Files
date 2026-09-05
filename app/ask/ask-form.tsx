@@ -13,8 +13,27 @@ const MAX_TEXTAREA_HEIGHT = 200;
 // Same formatting as app/ask/history/page.tsx's formatSources — small enough, and this codebase
 // already tolerates tiny per-route duplication like this (see clientIp() in
 // verify/actions.ts and forgot-password/actions.ts) rather than a shared module for one line.
-function formatSources(sources: { title: string; tier: 1 | 2 }[]): string {
-  return sources.map((s) => `${s.title} (Tier ${s.tier})`).join(", ");
+function formatSources(
+  sources: {
+    title: string;
+    tier: 1 | 2;
+    pageStart: number | null;
+    pageEnd: number | null;
+    section: string | null;
+  }[],
+): string {
+  return sources
+    .map((s) => {
+      const page =
+        s.pageStart == null
+          ? ""
+          : s.pageStart === s.pageEnd
+            ? `, p. ${s.pageStart}`
+            : `, pp. ${s.pageStart}–${s.pageEnd}`;
+      const section = s.section ? `, §${s.section}` : "";
+      return `${s.title} (Tier ${s.tier}${page}${section})`;
+    })
+    .join(", ");
 }
 
 export function AskForm() {

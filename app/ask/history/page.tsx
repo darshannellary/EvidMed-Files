@@ -12,8 +12,27 @@ export const metadata: Metadata = {
   description: "Your past clinical research questions and answers.",
 };
 
-function formatSources(sources: { title: string; tier: 1 | 2 }[]): string {
-  return sources.map((s) => `${s.title} (Tier ${s.tier})`).join(", ");
+function formatSources(
+  sources: {
+    title: string;
+    tier: 1 | 2;
+    pageStart: number | null;
+    pageEnd: number | null;
+    section: string | null;
+  }[],
+): string {
+  return sources
+    .map((s) => {
+      const page =
+        s.pageStart == null
+          ? ""
+          : s.pageStart === s.pageEnd
+            ? `, p. ${s.pageStart}`
+            : `, pp. ${s.pageStart}–${s.pageEnd}`;
+      const section = s.section ? `, §${s.section}` : "";
+      return `${s.title} (Tier ${s.tier}${page}${section})`;
+    })
+    .join(", ");
 }
 
 export default async function AskHistoryPage() {

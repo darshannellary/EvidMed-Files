@@ -30,6 +30,24 @@ Rules, no exceptions:
  * necessarily contiguous, so "part 7" could misleadingly suggest a huge or broken result when it's
  * really just "the 7th chunk happened to also be relevant."
  */
+/**
+ * Same page/section formatting as the UI's own formatSources (app/ask/ask-form.tsx,
+ * app/ask/history/page.tsx) — kept as an independent copy rather than a shared module, matching
+ * this codebase's existing tolerance for small per-layer duplication (see ask-form.tsx's own
+ * comment on formatSources). This copy's audience is Claude, not a doctor reading the page, so it
+ * doesn't need to match verbatim — only convey the same location.
+ */
+function formatLocation(chunk: RetrievedChunk): string {
+  const page =
+    chunk.page_start == null
+      ? ""
+      : chunk.page_start === chunk.page_end
+        ? `, p. ${chunk.page_start}`
+        : `, pp. ${chunk.page_start}-${chunk.page_end}`;
+  const section = chunk.section ? `, sec. ${chunk.section}` : "";
+  return `${page}${section}`;
+}
+
 export function buildUserPrompt(query: string, chunks: RetrievedChunk[]): string {
   const countByDoc = new Map<string, number>();
   for (const c of chunks) countByDoc.set(c.document_id, (countByDoc.get(c.document_id) ?? 0) + 1);
@@ -45,7 +63,7 @@ export function buildUserPrompt(query: string, chunks: RetrievedChunk[]): string
         suffix = ` (excerpt ${seen} of ${total})`;
       }
       const excerpt = chunk.chunk_text.slice(0, CHUNK_EXCERPT_CHAR_BUDGET);
-      return `[${i + 1}] ${chunk.source} (Tier ${chunk.tier}): ${chunk.title}${suffix}\n${excerpt}`;
+      return `[${i + 1}] ${chunk.source} (Tier ${chunk.tier}${formatLocation(chunk)}): ${chunk.title}${suffix}\n${excerpt}`;
     })
     .join("\n\n");
 
